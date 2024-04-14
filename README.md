@@ -5,6 +5,8 @@ Welcome to the Scythe Companion App repository! This project offers an expanded 
 
 This app serves as a supplementary tool for physical multiplayer games of Scythe. While designed to optimize multiplayer experiences, it may not be fully compatible for solo play against the Automa.
 
+![plot](./assets/screenshot-1.png) ![plot](./assets/screenshot-2.png) ![plot](./assets/screenshot-3.png)
+
 
 ## Features
 
@@ -23,13 +25,14 @@ This app serves as a supplementary tool for physical multiplayer games of Scythe
 
 > The server needs to be running for the App to work properly.
 
-1. Clone the repository to your local machine using: `git clone https://github.com/Matos182/scythe-coin-calculator.git`
-2. Create a Mongoose account and insert credentials in the `server.js` file.
-3. In the project folder, open a terminal and upgrade your Flutter dependencies using `flutter pub get` and `flutter run`.
-4. Run Flutter Icons: `flutter pub run flutter_launcher_icons:main`.
-5. Compile the code using Flutter: `flutter build apk`.
-6. Install and update dependencies on Node.js App
-7. Run the `server.js` server.
+1. Clone the repository to your local machine using: ```git clone https://github.com/Matos182/scythe-coin-calculator.git```
+2. Create a [Mongoose](https://www.mongodb.com/) account and insert credentials in `./server/index.js` file.
+3. Insert the public IPAddress of the host server in `./lib/resources/socket_client.dart` file.
+4. In the project folder, open a terminal and upgrade your Flutter dependencies using: ```flutter pub get```
+5. Run Flutter Icons: ```flutter pub run flutter_launcher_icons:main```
+6. Compile the code using Flutter: ```flutter build apk```
+7. Install and update dependencies on [Node.js](https://nodejs.org/en).
+8. Run the `index.js` server, opening a terminal in `./server/` folder and run: ```npm run start```
 
 As the final product requires the server to work properly, no binary file is provided in this release.
 
@@ -49,9 +52,9 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## Acknowledgements
 
--   Inspired by the board game Scythe created by Jamey Stegmaier.
+-   Inspired by the board game [Scythe](https://stonemaiergames.com/games/scythe/) created by Jamey Stegmaier.
 -   App is written with Dart and built with Flutter.
--   The server is written in JavaScript and operated on a Node.js server, using [Mongoose database](https://www.mongodb.com/).
+-   The server is written in JavaScript and operated on a [Node.js](https://nodejs.org/en) server, using [MongoDB](https://www.mongodb.com/).
 
 ## Buy me a Coffee
 
@@ -62,3 +65,6 @@ XMR Address:
 
 BNB Smart Chain Address:
 0x363365b8E01f4e6EbBc2630467c3354b4b74EC0C
+
+Solana Address:
+1xDA48D8LBd3fYeUXuvVx6VNTHSe8BZCevhDb8d3Jcf
