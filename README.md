@@ -8,8 +8,12 @@ Welcome to the Scythe Companion App repository! This project offers an expanded 
 
 This app serves as a supplementary tool for physical multiplayer games of Scythe. While designed to optimize multiplayer experiences, it may not be fully compatible for solo play against the Automa.
 
-![plot](./assets/screenshot-1.png) ![plot](./assets/screenshot-2.png) ![plot](./assets/screenshot-3.png)
-
+<p align="center" > 
+<img align="center" src="./assets/screenshot-1.png" />
+<img align="center" src="./assets/screenshot-1.png" />
+<img align="center" src="./assets/screenshot-1.png" /></p>
+<!---![plot](./assets/screenshot-1.png) ![plot](./assets/screenshot-2.png) ![plot](./assets/screenshot-3.png)
+--->
 
 ## Features
 
