@@ -6,6 +6,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../domain/score_calculator.dart';
+import '../domain/models/score_input.dart';
 import '../models/players.dart';
 import '../widgets/widgets.dart';
 import '../utils/colors.dart';
@@ -37,30 +39,20 @@ class _SimplePageState extends State<SimplePage> {
     player.popularity = int.tryParse(controllers[1].text) ?? 0;
     player.stars = int.tryParse(controllers[2].text) ?? 0;
     player.lands = int.tryParse(controllers[3].text) ?? 0;
-    player.resources =
-        ((int.tryParse(controllers[4].text) ?? 0) / 2).truncate();
+    final rawResources = int.tryParse(controllers[4].text) ?? 0;
+    player.resources = (rawResources / 2).truncate();
     player.buildings = int.tryParse(controllers[5].text) ?? 0;
     player.coins = int.tryParse(controllers[6].text) ?? 0;
 
-    if (player.popularity < 7) {
-      player.result = player.stars * 3 +
-          player.lands * 2 +
-          player.resources +
-          player.buildings +
-          player.coins;
-    } else if (player.popularity >= 7 && player.popularity < 13) {
-      player.result = player.stars * 4 +
-          player.lands * 3 +
-          player.resources * 2 +
-          player.buildings +
-          player.coins;
-    } else {
-      player.result = player.stars * 5 +
-          player.lands * 4 +
-          player.resources * 3 +
-          player.buildings +
-          player.coins;
-    }
+    player.result = coinsFor(ScoreInput(
+      name: player.name,
+      popularity: player.popularity,
+      stars: player.stars,
+      lands: player.lands,
+      resources: rawResources,
+      buildings: player.buildings,
+      coins: player.coins,
+    ));
     setState(() {});
   }
 

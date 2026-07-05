@@ -5,13 +5,13 @@ awaiting Matos review · ✅ done (gates green, Matos reviewed) · 🟥 blocked.
 Every chat updates this file before ending
 (protocol §4). "Next up" is the single source of truth for what happens next.
 
-**Next up:** T1.1 — ScoreCalculator extraction (IMP, small). Branch off
-`task/T0.4-deps`. Read 02_ARCHITECTURE §"Scoring engine" and 01_AUDIT
-A13. Create `domain/score_calculator.dart` + `domain/models/score_input.dart`
-per 02_ARCHITECTURE. Unit tests: tier boundaries (pop 0,6,7,12,13,18),
-resources odd/even floor, zeros, 7-player batch. Both scoring pages
-still behave identically (manual check by Matos). This is the first
-pure-Dart domain code — no Flutter imports in `lib/domain/`.
+**Next up:** T1.2 — Typed models (IMP, medium). Branch off
+`task/T1.1-score-calculator`. Read 02_ARCHITECTURE §"Typed models" +
+01_AUDIT A12. Create `Player`, `Room`, `TurnState` with
+`fromJson/toJson` matching current server payloads (write an adapter
+seam so T2.1 swaps cleanly). Replace `Map` access in provider/pages.
+Rename `Players`→`ScoreEntry` where it serves the calculator. Done
+when: GATE-F; zero `roomData[...]` string indexing left in `lib/`.
 
 ## Phase 0 — Foundation
 | Task | Title | Role | Status |
@@ -19,10 +19,8 @@ pure-Dart domain code — no Flutter imports in `lib/domain/`.
 | T0.1 | Environment bring-up (WSL2) | CON+Matos | ✅ |
 | T0.2 | Repo hygiene | IMP | ✅ |
 | T0.3 | Baseline & truth commit | IMP | ✅ |
-| T0.4 | Dependency refresh | IMP | 🟦 |
-
-## Phase 1 — Domain core
-| T1.1 | ScoreCalculator extraction | IMP | ⬜ |
+| T0.4 | Dependency refresh | IMP | ✅ |
+| T1.1 | ScoreCalculator extraction | IMP | 🟦 |
 | T1.2 | Typed models | IMP | ⬜ |
 | T1.3 | Scoring UIs consolidated | IMP | ⬜ |
 | T1.4 | Lint & language pass | IMP | ⬜ |
@@ -53,6 +51,14 @@ pure-Dart domain code — no Flutter imports in `lib/domain/`.
   · S5 expansion content (mind C5) · S6 iOS
 
 ## Hand-off notes (append-only, newest first)
+
+```
+HANDOFF T1.1 (🟦 DONE — pending Matos review) | 2026-07-05 | model: glm-5.2 (IMP) | branch: task/T1.1-score-calculator
+Did: extracted the duplicated scoring if-ladder (audit A13) from simple.dart + player_add.dart into a pure-function domain layer. Created lib/domain/score_calculator.dart (coinsFor — no Flutter imports) + lib/domain/models/score_input.dart (immutable input model). 19 unit tests in test/domain/score_calculator_test.dart: tier boundaries (pop 0,6,7,12,13,18), resources odd/even floor at all 3 tiers, zeros, negative pop, 7-player batch with hand-verified expected values. Refactored both scoring pages to call coinsFor — the if-ladder is gone from both. Behavior preserved exactly: player.resources still stored as floored value for display (result.dart table), rawResources passed to coinsFor (which floors internally). Hit one new lint from flutter_lints 6.0.0 (unnecessary_library_name + dangling_library_doc_comments) — fixed by adding bare `library;` directive. Scoring rules now locked by unit tests.
+Gates: dart format ✓ (0 changes); flutter analyze ✓ 59 issues = exact baseline (2 A11 errors + 57 deprecation infos, 0 new); flutter test ✓ 19 domain tests pass + 1 fail (widget_test.dart A11 — pre-existing). Full suite: +19 -1.
+Surprises/debt: The original code had a subtle behavior in player_add.dart — it checks `player.result == 0` BEFORE computing the new score (line 68), which tests the stale default. Preserved as-is (T1.3 handles input validation properly). Also: the `Players` model is still used for UI state (mutable fields, positional constructor) — T1.2 will replace it with `ScoreEntry` where it serves the calculator and typed `Player`/`Room`/`TurnState` for multiplayer. The domain layer is the first pure-Dart code in the repo — `lib/domain/` has zero Flutter imports, testable in isolation.
+Next chat needs: T1.2 Typed models (IMP, medium). Branch off task/T1.1-score-calculator. Read 02_ARCHITECTURE §"Typed models" + 01_AUDIT A12. Create Player/Room/TurnState with fromJson/toJson matching current server payloads (adapter seam for T2.1). Replace Map access in provider/pages. Rename Players→ScoreEntry where it serves the calculator. Done when: GATE-F; zero roomData[...] string indexing left in lib/.
+```
 
 ```
 HANDOFF T0.4 (🟦 DONE — pending Matos review) | 2026-07-05 | model: glm-5.2 (IMP) | branch: task/T0.4-deps (pushed to origin)
