@@ -5,7 +5,7 @@
  *
  * Ports createRoom / joinRoom / startGame from the old `index.js` but
  * uses the in-memory RoomStore (D2) instead of MongoDB.  Timer/turn/
- * pause/resume handlers land in T2.2 (Timer engine).
+ * pause/resume handlers are wired to the timerEngine (T2.2).
  *
  * Every handler validates input, emits the appropriate wire event
  * (see src/protocol.js), and keeps the old event-name vocabulary so
@@ -13,13 +13,18 @@
  */
 
 import { RoomStore } from './roomStore.js';
+import * as timerEngine from './timerEngine.js';
 import {
   CREATE_ROOM,
   JOIN_ROOM,
   START_GAME,
+  TURN,
+  PAUSE,
+  RESUME,
   CREATE_ROOM_SUCCESS,
   JOIN_ROOM_SUCCESS,
   UPDATE_ROOM,
+  NEW_TURN,
   ERROR_OCCURRED,
 } from './protocol.js';
 
@@ -105,10 +110,62 @@ export function registerHandlers(io, store) {
         return;
       }
 
-      store.startGame(roomId);
+      // Use the return value — startGame mutates in place but returns the
+      // same room reference, so this is both safe and explicit (review T2.1).
+      const started = store.startGame(roomId);
       store.touch(roomId);
-      io.to(roomId).emit(UPDATE_ROOM, RoomStore.serialize(room));
+      io.to(roomId).emit(UPDATE_ROOM, RoomStore.serialize(started));
+
+      // Start the 1s tick loop for this room.
+      timerEngine.start(io, store, roomId);
       console.log(`[server] game started in room ${roomId}`);
+    });
+
+    // ── turn (pass) ──────────────────────────────────────────────
+    socket.on(TURN, ({ roomId }) => {
+      const room = store.get(roomId);
+      if (!room) {
+        socket.emit(ERROR_OCCURRED, 'Room not found.');
+        return;
+      }
+
+      const updated = store.passTurn(roomId);
+      if (!updated) {
+        socket.emit(ERROR_OCCURRED, 'Could not pass turn.');
+        return;
+      }
+
+      io.to(roomId).emit(NEW_TURN, RoomStore.serialize(updated));
+
+      // Restart the timer for the next player (clears any existing interval
+      // first — guarantees ≤ 1 interval per room, fixing A1).
+      timerEngine.start(io, store, roomId);
+    });
+
+    // ── pause ────────────────────────────────────────────────────
+    socket.on(PAUSE, ({ roomId }) => {
+      const room = store.get(roomId);
+      if (!room) {
+        socket.emit(ERROR_OCCURRED, 'Room not found.');
+        return;
+      }
+
+      timerEngine.pause(store, roomId);
+      const updated = store.get(roomId);
+      io.to(roomId).emit(UPDATE_ROOM, RoomStore.serialize(updated));
+    });
+
+    // ── toContinue (resume) ──────────────────────────────────────
+    socket.on(RESUME, ({ roomId }) => {
+      const room = store.get(roomId);
+      if (!room) {
+        socket.emit(ERROR_OCCURRED, 'Room not found.');
+        return;
+      }
+
+      timerEngine.resume(io, store, roomId);
+      const updated = store.get(roomId);
+      io.to(roomId).emit(UPDATE_ROOM, RoomStore.serialize(updated));
     });
 
     socket.on('disconnect', () => {
@@ -116,4 +173,11 @@ export function registerHandlers(io, store) {
       // T2.3 handles presence/rejoin — seat kept, timer auto-pause policy.
     });
   });
+}
+
+/**
+ * Stop all timers (for graceful shutdown / test teardown).
+ */
+export function shutdownTimers() {
+  timerEngine.stopAll();
 }

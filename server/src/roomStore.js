@@ -17,7 +17,7 @@
 
 import { randomUUID } from 'node:crypto';
 import { reorderPlayers } from './factionWheel.js';
-import { roomTtlHours } from './config.js';
+import { roomTtlHours, minTurnSec } from './config.js';
 
 /** Unambiguous alphabet for room codes (no 0/O/1/I/L). */
 const ROOM_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -27,13 +27,14 @@ const TTL_MS = roomTtlHours * 60 * 60 * 1000;
 
 /**
  * @typedef {Object} Player
- * @property {string} _id        — playerId (UUID)
+ * @property {string} _id          — playerId (UUID)
  * @property {string} nickname
- * @property {string} socketID   — current socket id (updated on rejoin)
+ * @property {string} socketID     — current socket id (updated on rejoin)
  * @property {string} playerfaction
  * @property {string} playermat
- * @property {number} timer      — per-turn allowance (seconds)
- * @property {boolean} connected — presence flag (T2.3)
+ * @property {number} timer        — per-turn allowance in seconds (config, A6)
+ * @property {number} remainingSec — live countdown value (A6: distinct from timer)
+ * @property {boolean} connected   — presence flag (T2.3)
  */
 
 /**
@@ -87,6 +88,7 @@ export class RoomStore {
       playerfaction,
       playermat,
       timer,
+      remainingSec: timer,
       connected: true,
     };
 
@@ -137,6 +139,7 @@ export class RoomStore {
       playerfaction,
       playermat,
       timer,
+      remainingSec: timer,
       connected: true,
     };
 
@@ -156,6 +159,7 @@ export class RoomStore {
 
   /**
    * Start the game: close the room, run faction wheel, set first player.
+   * Resets remainingSec for the first player (A6).
    * @param {string} roomCode
    * @returns {Room | null}
    */
@@ -168,8 +172,69 @@ export class RoomStore {
     room.players = reorderPlayers(room.players);
     room.turn = room.players[0];
     room.turnIndex = 0;
+    room.isPaused = false;
+    // Reset remainingSec for all players to their allowance (A6)
+    for (const p of room.players) {
+      p.remainingSec = p.timer;
+    }
     room.lastActivity = Date.now();
     return room;
+  }
+
+  /**
+   * Advance to the next player's turn.  Wraps around at the end of the
+   * player list, incrementing totalTurns.  Resets the next player's
+   * remainingSec to at least minTurnSec (preserves the old server's
+   * "reset to 10 if < 10" rule, but as explicit config — A6).
+   * @param {string} roomCode
+   * @returns {Room | null}
+   */
+  passTurn(roomCode) {
+    const room = this.rooms.get(roomCode);
+    if (!room) return null;
+
+    if (room.turnIndex < room.players.length - 1) {
+      room.turnIndex++;
+    } else {
+      room.turnIndex = 0;
+      room.totalTurns++;
+    }
+    room.turn = room.players[room.turnIndex];
+
+    // Ensure the next player gets at least minTurnSec (A6).
+    if (room.turn.remainingSec < minTurnSec) {
+      room.turn.remainingSec = minTurnSec;
+    }
+    room.isPaused = false;
+    room.lastActivity = Date.now();
+    return room;
+  }
+
+  /**
+   * Set the paused state of a room.
+   * @param {string} roomCode
+   * @param {boolean} paused
+   * @returns {Room | null}
+   */
+  setPaused(roomCode, paused) {
+    const room = this.rooms.get(roomCode);
+    if (!room) return null;
+    room.isPaused = paused;
+    room.lastActivity = Date.now();
+    return room;
+  }
+
+  /**
+   * Decrement the current player's remainingSec by 1 (called by timerEngine tick).
+   * Returns the new remainingSec, or null if room/player not found.
+   * @param {string} roomCode
+   * @returns {number | null}
+   */
+  decrementTimer(roomCode) {
+    const room = this.rooms.get(roomCode);
+    if (!room || !room.turn) return null;
+    room.turn.remainingSec--;
+    return room.turn.remainingSec;
   }
 
   /**
@@ -232,6 +297,7 @@ export class RoomStore {
         playerfaction: p.playerfaction,
         playermat: p.playermat,
         timer: p.timer,
+        remainingSec: p.remainingSec,
       })),
       turn: room.turn ? {
         _id: room.turn._id,
@@ -240,6 +306,7 @@ export class RoomStore {
         playerfaction: room.turn.playerfaction,
         playermat: room.turn.playermat,
         timer: room.turn.timer,
+        remainingSec: room.turn.remainingSec,
       } : null,
       creator: room.creator ? {
         _id: room.creator._id,
@@ -248,6 +315,7 @@ export class RoomStore {
         playerfaction: room.creator.playerfaction,
         playermat: room.creator.playermat,
         timer: room.creator.timer,
+        remainingSec: room.creator.remainingSec,
       } : null,
     };
   }

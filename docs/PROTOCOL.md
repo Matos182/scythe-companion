@@ -2,7 +2,7 @@
 
 **Protocol version:** 1  
 **Transport:** socket.io (client 3.x ↔ server 4.x)  
-**Last updated:** 2026-07-05 (T2.1)
+**Last updated:** 2026-07-05 (T2.2)
 
 > A `protocolVersion` field is included in the `/healthz` HTTP response
 > and in the handshake. If the client's expected version differs, it must
@@ -30,7 +30,8 @@ events carry a serialized room object:
       "socketID": "xW123...",
       "playerfaction": "Crimea",
       "playermat": "1",
-      "timer": 300
+      "timer": 300,
+      "remainingSec": 300
     }
   ],
   "turn": { /* same shape as a player */ },
@@ -58,7 +59,8 @@ events carry a serialized room object:
 | `socketID` | string | Current socket.io id (updated on rejoin) |
 | `playerfaction` | string | One of: Crimea, Saxony, Polania, Albion, Nordic, Rusviet, Togawa |
 | `playermat` | string | One of: 1, 2, 2A, 3, 3A, 4, 5 |
-| `timer` | int | Per-turn allowance (seconds). Inherited from first player. |
+| `timer` | int | Per-turn allowance in seconds (config, A6) |
+| `remainingSec` | int | Live countdown value (A6: distinct from `timer`) |
 
 ---
 
@@ -122,9 +124,12 @@ Closes the room, runs the faction wheel, sets first player.
 
 ---
 
-#### `turn` *(T2.2 — not yet implemented)*
+#### `turn`
 
-Passes the turn to the next player.
+Passes the turn to the next player. The server advances `turnIndex`
+(wrapping around at the end of the player list, incrementing `totalTurns`),
+resets the next player's `remainingSec` to at least `minTurnSec` if it was
+below that threshold (audit A6), and restarts the timer engine for the room.
 
 ```json
 {
@@ -136,9 +141,11 @@ Passes the turn to the next player.
 
 ---
 
-#### `pause` *(T2.2 — not yet implemented)*
+#### `pause`
 
-Pauses the game timer.
+Pauses the game timer. The timer engine clears the 1s interval for this
+room; `remainingSec` is preserved (not reset). When resumed, ticking
+continues from where it left off.
 
 ```json
 {
@@ -150,15 +157,14 @@ Pauses the game timer.
 
 ---
 
-#### `toContinue` *(T2.2 — not yet implemented)*
+#### `toContinue`
 
 Resumes the game timer. Wire name kept as `toContinue` for backward
 compatibility; renamed to `resume` in Dart code (T1.4).
 
 ```json
 {
-  "roomId": "AB3KMN",
-  "atualTurn": 0
+  "roomId": "AB3KMN"
 }
 ```
 
@@ -173,7 +179,8 @@ compatibility; renamed to `resume` in Dart code (T1.4).
 | `createRoomSuccess` | Room created | Room object |
 | `joinRoomSuccess` | Player joined (to joiner) | Room object |
 | `updateRoom` | Room state changed | Room object |
-| `newTurn` | Turn passed (T2.2) | Room object |
+| `newTurn` | Turn passed (manual or auto-pass on timeout) | Room object |
+| `tick` | 1s timer tick (T2.2) | `{ roomCode, playerId, remainingSec }` |
 | `errorOccurred` | Any validation error | string (error message) |
 
 ---
