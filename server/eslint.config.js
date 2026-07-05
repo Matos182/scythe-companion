@@ -25,18 +25,6 @@ export default [
     },
   },
   {
-    // Legacy index.js + models/ — CommonJS, not touched by T2.0.
-    files: ['index.js', 'models/**/*.js'],
-    languageOptions: {
-      sourceType: 'commonjs',
-      globals: { ...globals.node },
-    },
-    rules: {
-      'no-unused-vars': 'off',
-      'no-undef': 'off',
-    },
-  },
-  {
     ignores: ['node_modules/'],
   },
 ];

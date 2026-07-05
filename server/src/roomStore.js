@@ -1,0 +1,289 @@
+// SPDX-License-Identifier: MIT
+
+/**
+ * In-memory RoomStore (decision D2).
+ *
+ * Replaces MongoDB/Mongoose entirely.  Rooms are ephemeral (~2 h game
+ * sessions); state fits in memory.  A TTL sweeper removes idle rooms.
+ *
+ * Room codes are 6-char from an unambiguous alphabet (D4) — readable
+ * aloud at the table.  playerId is a UUID minted by the server at join,
+ * stored client-side in shared_preferences, enabling rejoin in T2.3.
+ *
+ * The serialized room shape matches the Dart client's `Room.fromJson`
+ * (flat: _id, isJoin, turnIndex, totalTurns, isPaused, players[], turn{},
+ * creator{}) — this is the adapter seam (02_ARCHITECTURE).
+ */
+
+import { randomUUID } from 'node:crypto';
+import { reorderPlayers } from './factionWheel.js';
+import { roomTtlHours } from './config.js';
+
+/** Unambiguous alphabet for room codes (no 0/O/1/I/L). */
+const ROOM_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const ROOM_CODE_LENGTH = 6;
+const MAX_PLAYERS = 7;
+const TTL_MS = roomTtlHours * 60 * 60 * 1000;
+
+/**
+ * @typedef {Object} Player
+ * @property {string} _id        — playerId (UUID)
+ * @property {string} nickname
+ * @property {string} socketID   — current socket id (updated on rejoin)
+ * @property {string} playerfaction
+ * @property {string} playermat
+ * @property {number} timer      — per-turn allowance (seconds)
+ * @property {boolean} connected — presence flag (T2.3)
+ */
+
+/**
+ * @typedef {Object} Room
+ * @property {string} _id         — room code
+ * @property {boolean} isJoin
+ * @property {number} turnIndex
+ * @property {number} totalTurns
+ * @property {boolean} isPaused
+ * @property {Player[]} players
+ * @property {Player} turn
+ * @property {Player} creator
+ * @property {number} lastActivity — Date.now() for TTL sweeper
+ */
+
+/** @returns {string} 6-char room code */
+function generateRoomCode() {
+  let code = '';
+  for (let i = 0; i < ROOM_CODE_LENGTH; i++) {
+    code += ROOM_CODE_ALPHABET[Math.floor(Math.random() * ROOM_CODE_ALPHABET.length)];
+  }
+  return code;
+}
+
+/** @returns {string} UUID v4 */
+function generatePlayerId() {
+  return randomUUID();
+}
+
+export class RoomStore {
+  constructor() {
+    /** @type {Map<string, Room>} */
+    this.rooms = new Map();
+    this._sweeperTimer = null;
+  }
+
+  /**
+   * Create a new room with one player (the creator).
+   * @param {{nickname:string, playerfaction:string, playermat:string, timer:number}} opts
+   * @returns {{room: Room, playerId: string}}
+   */
+  create({ nickname, playerfaction, playermat, timer }) {
+    const playerId = generatePlayerId();
+    const roomCode = this._uniqueRoomCode();
+
+    /** @type {Player} */
+    const player = {
+      _id: playerId,
+      nickname,
+      socketID: '',
+      playerfaction,
+      playermat,
+      timer,
+      connected: true,
+    };
+
+    /** @type {Room} */
+    const room = {
+      _id: roomCode,
+      isJoin: true,
+      turnIndex: 0,
+      totalTurns: 1,
+      isPaused: false,
+      players: [player],
+      turn: player,
+      creator: player,
+      lastActivity: Date.now(),
+    };
+
+    this.rooms.set(roomCode, room);
+    return { room, playerId };
+  }
+
+  /**
+   * Join an existing room.  Returns the updated room + the new player's ID,
+   * or null if the room doesn't exist / is full / faction-mat clash.
+   *
+   * @param {string} roomCode
+   * @param {{nickname:string, playerfaction:string, playermat:string}} opts
+   * @returns {{room: Room, playerId: string} | null}
+   */
+  join(roomCode, { nickname, playerfaction, playermat }) {
+    const room = this.rooms.get(roomCode);
+    if (!room) return null;
+    if (!room.isJoin) return null;
+
+    // Faction/mat uniqueness check (preserved from old server)
+    const factionTaken = room.players.some((p) => p.playerfaction === playerfaction);
+    const matTaken = room.players.some((p) => p.playermat === playermat);
+    if (factionTaken || matTaken) return null;
+
+    const playerId = generatePlayerId();
+    // Inherit timer from first player (preserved from old server)
+    const timer = room.players[0].timer;
+
+    /** @type {Player} */
+    const player = {
+      _id: playerId,
+      nickname,
+      socketID: '',
+      playerfaction,
+      playermat,
+      timer,
+      connected: true,
+    };
+
+    room.players.push(player);
+    room.lastActivity = Date.now();
+
+    // Auto-close at max players and run faction wheel
+    if (room.players.length >= MAX_PLAYERS) {
+      room.isJoin = false;
+      room.players = reorderPlayers(room.players);
+      room.turn = room.players[0];
+      room.turnIndex = 0;
+    }
+
+    return { room, playerId };
+  }
+
+  /**
+   * Start the game: close the room, run faction wheel, set first player.
+   * @param {string} roomCode
+   * @returns {Room | null}
+   */
+  startGame(roomCode) {
+    const room = this.rooms.get(roomCode);
+    if (!room) return null;
+    if (room.players.length < 2) return null;
+
+    room.isJoin = false;
+    room.players = reorderPlayers(room.players);
+    room.turn = room.players[0];
+    room.turnIndex = 0;
+    room.lastActivity = Date.now();
+    return room;
+  }
+
+  /**
+   * Get a room by code (without mutating lastActivity).
+   * @param {string} roomCode
+   * @returns {Room | undefined}
+   */
+  get(roomCode) {
+    return this.rooms.get(roomCode);
+  }
+
+  /**
+   * Update a room's lastActivity timestamp (call on any player action).
+   * @param {string} roomCode
+   */
+  touch(roomCode) {
+    const room = this.rooms.get(roomCode);
+    if (room) room.lastActivity = Date.now();
+  }
+
+  /**
+   * Remove a room from the store.
+   * @param {string} roomCode
+   */
+  delete(roomCode) {
+    this.rooms.delete(roomCode);
+  }
+
+  /**
+   * Find a room by playerId (used by rejoin in T2.3).
+   * @param {string} playerId
+   * @returns {Room | undefined}
+   */
+  findByPlayerId(playerId) {
+    for (const room of this.rooms.values()) {
+      if (room.players.some((p) => p._id === playerId)) {
+        return room;
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Serialize a room for the wire (matches Dart client's Room.fromJson).
+   * Strips internal fields (lastActivity, connected).
+   * @param {Room} room
+   * @returns {object}
+   */
+  static serialize(room) {
+    return {
+      _id: room._id,
+      isJoin: room.isJoin,
+      turnIndex: room.turnIndex,
+      totalTurns: room.totalTurns,
+      isPaused: room.isPaused,
+      players: room.players.map((p) => ({
+        _id: p._id,
+        nickname: p.nickname,
+        socketID: p.socketID,
+        playerfaction: p.playerfaction,
+        playermat: p.playermat,
+        timer: p.timer,
+      })),
+      turn: room.turn ? {
+        _id: room.turn._id,
+        nickname: room.turn.nickname,
+        socketID: room.turn.socketID,
+        playerfaction: room.turn.playerfaction,
+        playermat: room.turn.playermat,
+        timer: room.turn.timer,
+      } : null,
+      creator: room.creator ? {
+        _id: room.creator._id,
+        nickname: room.creator.nickname,
+        socketID: room.creator.socketID,
+        playerfaction: room.creator.playerfaction,
+        playermat: room.creator.playermat,
+        timer: room.creator.timer,
+      } : null,
+    };
+  }
+
+  /** Generate a room code that doesn't collide with existing rooms. */
+  _uniqueRoomCode() {
+    let code;
+    let attempts = 0;
+    do {
+      code = generateRoomCode();
+      attempts++;
+    } while (this.rooms.has(code) && attempts < 100);
+    return code;
+  }
+
+  /**
+   * Start the TTL sweeper — removes rooms idle > roomTtlHours.
+   * Call once at server boot.  Runs every 5 minutes.
+   */
+  startSweeper() {
+    if (this._sweeperTimer) return;
+    this._sweeperTimer = setInterval(() => {
+      const now = Date.now();
+      for (const [code, room] of this.rooms) {
+        if (now - room.lastActivity > TTL_MS) {
+          this.rooms.delete(code);
+        }
+      }
+    }, 5 * 60 * 1000);
+  }
+
+  /** Stop the sweeper (for tests / graceful shutdown). */
+  stopSweeper() {
+    if (this._sweeperTimer) {
+      clearInterval(this._sweeperTimer);
+      this._sweeperTimer = null;
+    }
+  }
+}
