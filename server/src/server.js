@@ -14,7 +14,7 @@ import http from 'node:http';
 import { Server } from 'socket.io';
 import { port, corsOrigin } from './config.js';
 import { RoomStore } from './roomStore.js';
-import { registerHandlers } from './handlers.js';
+import { registerHandlers, shutdownTimers } from './handlers.js';
 import { PROTOCOL_VERSION } from './protocol.js';
 
 const app = express();
@@ -40,6 +40,18 @@ registerHandlers(io, store);
 
 httpServer.listen(port, () => {
   console.log(`[server] listening on :${port} (CORS origin: ${corsOrigin}, protocol v${PROTOCOL_VERSION})`);
+});
+
+// Graceful shutdown: stop all timer intervals + close the sweeper.
+process.on('SIGTERM', () => {
+  shutdownTimers();
+  store.stopSweeper();
+  httpServer.close();
+});
+process.on('SIGINT', () => {
+  shutdownTimers();
+  store.stopSweeper();
+  httpServer.close();
 });
 
 export { app, httpServer, io, store };

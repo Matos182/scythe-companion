@@ -23,6 +23,7 @@ export const CREATE_ROOM_SUCCESS = 'createRoomSuccess';
 export const JOIN_ROOM_SUCCESS = 'joinRoomSuccess';
 export const UPDATE_ROOM = 'updateRoom';
 export const NEW_TURN = 'newTurn';
+export const TICK = 'tick';
 export const ERROR_OCCURRED = 'errorOccurred';
 
 /** Protocol version — bumped when the wire format changes (D5). */

@@ -22,3 +22,12 @@ export const corsOrigin = process.env.CORS_ORIGIN ?? '*';
 
 /** @type {number} Idle-room TTL in hours (D2 — in-memory store sweeper). */
 export const roomTtlHours = Number(process.env.ROOM_TTL_HOURS ?? 3);
+
+/**
+ * Minimum seconds remaining when a turn starts (audit A6 — the old server
+ * silently reset timers to 10 if below 10; now this is an explicit config
+ * knob).  Ensures every player gets at least this much time even if the
+ * allowance was partially consumed by an auto-pass.
+ * @type {number}
+ */
+export const minTurnSec = Number(process.env.MIN_TURN_SEC ?? 10);
