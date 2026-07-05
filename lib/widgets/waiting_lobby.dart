@@ -21,7 +21,6 @@ class _LobbyPageState extends State<LobbyPage> {
   void initState() {
     super.initState();
     _socketMethods.updateRoomListener(context);
-    //_socketMethods.errorOccurredListener(context);
     roomIdController = TextEditingController(
       text:
           Provider.of<RoomDataProvider>(context, listen: false).roomData['_id'],
@@ -32,7 +31,6 @@ class _LobbyPageState extends State<LobbyPage> {
   void dispose() {
     super.dispose();
     roomIdController.dispose();
-    //_socketMethods.disposeListeners();
   }
 
   @override

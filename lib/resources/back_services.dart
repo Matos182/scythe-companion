@@ -38,6 +38,5 @@ void onStart(ServiceInstance service) async {
         return;
       }
     });
-    //service.on('showNotification').listen((event) {});
   }
 }

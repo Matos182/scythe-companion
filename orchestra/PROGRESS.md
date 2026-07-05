@@ -4,15 +4,18 @@ Legend: ⬜ not started · 🟨 in progress (branch open) · ✅ done (gates gre
 Matos reviewed) · 🟥 blocked. Every chat updates this file before ending
 (protocol §4). "Next up" is the single source of truth for what happens next.
 
-**Next up:** T0.2 — Repo hygiene (IMP, small; suggested model: MiniMax or
-claude-haiku). Work in `~/dev/scythe-companion`, branch off
-`task/T0.1-env-bringup` until Matos merges it (it carries orchestra/ docs).
+**Next up:** T0.3 — Baseline & truth commit (IMP, small). Work in
+`~/dev/scythe-companion`, branch off `task/T0.2-repo-hygiene` (carries
+T0.1 + T0.2 work). Run `flutter pub get`, `flutter analyze`, `flutter test`,
+`cd server && npm ci && node --check index.js`; fix nothing except what
+blocks commands from running; record all warnings/failures verbatim in
+`orchestra/BASELINE.md`.
 
 ## Phase 0 — Foundation
 | Task | Title | Role | Status |
 |---|---|---|---|
 | T0.1 | Environment bring-up (WSL2) | CON+Matos | ✅ |
-| T0.2 | Repo hygiene | IMP | ⬜ |
+| T0.2 | Repo hygiene | IMP | ✅ |
 | T0.3 | Baseline & truth commit | IMP | ⬜ |
 | T0.4 | Dependency refresh | IMP | ⬜ |
 
@@ -48,6 +51,14 @@ claude-haiku). Work in `~/dev/scythe-companion`, branch off
   · S5 expansion content (mind C5) · S6 iOS
 
 ## Hand-off notes (append-only, newest first)
+
+```
+HANDOFF T0.2 (✅ DONE — pending Matos review) | 2026-07-05 | model: glm-5.2 (IMP) | branch: task/T0.2-repo-hygiene (in ~/dev/scythe-companion)
+Did: git rm -r --cached server/node_modules (2037 files, ~22MB) + gitignored it. Deleted dead commented-out code per A16: ASCII-art header in main.dart, commented imports (awesome_notifications/vibration/flutter_background_service duplicates), commented-out Vibration/notification/disposeListeners blocks across game.dart, socket_methods.dart, back_services.dart, create.dart, join.dart, home.dart, waiting_lobby.dart. Fixed README clone URL (old repo name scythe-coin-calculator → scythe-companion) + added orchestra/ pointer section. E2 closed: app/ move deferred to Phase 1 (see DECISIONS E2).
+Gates: dart format 0 changes ✓; flutter analyze 2 errors + 57 info (all pre-existing: A11 env.dart + MaterialState deprecations) — no new issues introduced ✓; flutter test fails (pre-existing A15 widget_test.dart) ✓; working tree 3.2MB excl .git/assets/node_modules (< 5MB target) ✓; tracked files 180 (was 2044+).
+Surprises/debt: None new. T0.2 is a pure hygiene diff — no logic changed. Matos should review the diff before merging. Branch is local-only (not pushed); GitHub visibility decision still pending.
+Next chat needs: T0.3 Baseline & truth commit (IMP). Branch off task/T0.2-repo-hygiene. Record all failures verbatim in orchestra/BASELINE.md — the 2 analyze errors (A11) + 57 deprecation infos + test failure (A15) are the known baseline. Fix nothing except what blocks commands from running.
+```
 
 ```
 HANDOFF T0.1 (✅ DONE) | 2026-07-05 | model: claude-fable-5 (CON) | branch: task/T0.1-env-bringup (in ~/dev/scythe-companion)

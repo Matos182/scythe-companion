@@ -65,7 +65,6 @@ class _HomePageState extends State<HomePage> {
                       padding: const EdgeInsets.all(7.0),
                       child: ElevatedButton(
                           onPressed: () {
-                            //GoRouter.of(context).go('/result');
                             context.goNamed(RouteNames.addplayer);
                           },
                           style: const ButtonStyle(
