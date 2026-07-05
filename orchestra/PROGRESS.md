@@ -4,13 +4,14 @@ Legend: ⬜ not started · 🟨 in progress (branch open) · ✅ done (gates gre
 Matos reviewed) · 🟥 blocked. Every chat updates this file before ending
 (protocol §4). "Next up" is the single source of truth for what happens next.
 
-**Next up:** finish T0.1 in Conductor chat #1 (in progress). Then T0.2 —
-Repo hygiene (IMP, small; suggested model: MiniMax or claude-haiku).
+**Next up:** T0.2 — Repo hygiene (IMP, small; suggested model: MiniMax or
+claude-haiku). Work in `~/dev/scythe-companion`, branch off
+`task/T0.1-env-bringup` until Matos merges it (it carries orchestra/ docs).
 
 ## Phase 0 — Foundation
 | Task | Title | Role | Status |
 |---|---|---|---|
-| T0.1 | Environment bring-up (WSL2) | CON+Matos | 🟨 |
+| T0.1 | Environment bring-up (WSL2) | CON+Matos | ✅ |
 | T0.2 | Repo hygiene | IMP | ⬜ |
 | T0.3 | Baseline & truth commit | IMP | ⬜ |
 | T0.4 | Dependency refresh | IMP | ⬜ |
@@ -47,6 +48,14 @@ Repo hygiene (IMP, small; suggested model: MiniMax or claude-haiku).
   · S5 expansion content (mind C5) · S6 iOS
 
 ## Hand-off notes (append-only, newest first)
+
+```
+HANDOFF T0.1 (✅ DONE) | 2026-07-05 | model: claude-fable-5 (CON) | branch: task/T0.1-env-bringup (in ~/dev/scythe-companion)
+Did: phone paired & connected over Wi-Fi (winner recorded in E3 — pairing code must be typed interactively). `flutter devices` lists SM S938B / Android 16 / API 36. Done-criteria met (doctor clean + device listed). E1 & E3 closed. T0.1 flipped ✅.
+Gates: n/a (env task)
+Surprises/debt: Matos still to run (non-blocking): (1) `echo 'export PATH="$HOME/develop/node/bin:$PATH"' >> ~/.bashrc` — node 22.23.1 is installed but not on PATH yet; (2) optional `sudo apt remove adb` (Debian v34 mismatch risk); (3) push branch task/T0.1-env-bringup. Connect port rotates after phone reboot — reconnect per E3, no re-pair.
+Next chat needs: T0.2 Repo hygiene (IMP, cheap model). Read task card + A16 in 01_AUDIT.md. Repo at ~/dev/scythe-companion, branch off task/T0.1-env-bringup (has orchestra/ docs). E2 (app/ move) to be decided & recorded during T0.2.
+```
 
 ```
 HANDOFF T0.1 (🟨 continues) | 2026-07-05 | model: claude-fable-5 (CON) | branch: task/T0.1-env-bringup (in ~/dev/scythe-companion)
