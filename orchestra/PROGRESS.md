@@ -1,7 +1,8 @@
 # PROGRESS BOARD
 
-Legend: ⬜ not started · 🟨 in progress (branch open) · ✅ done (gates green,
-Matos reviewed) · 🟥 blocked. Every chat updates this file before ending
+Legend: ⬜ not started · 🟨 in progress (branch open) · 🟦 gates green,
+awaiting Matos review · ✅ done (gates green, Matos reviewed) · 🟥 blocked.
+Every chat updates this file before ending
 (protocol §4). "Next up" is the single source of truth for what happens next.
 
 **Next up:** T0.3 — Baseline & truth commit (IMP, small). Work in
@@ -9,13 +10,15 @@ Matos reviewed) · 🟥 blocked. Every chat updates this file before ending
 T0.1 + T0.2 work). Run `flutter pub get`, `flutter analyze`, `flutter test`,
 `cd server && npm ci && node --check index.js`; fix nothing except what
 blocks commands from running; record all warnings/failures verbatim in
-`orchestra/BASELINE.md`.
+`orchestra/BASELINE.md`. Also note there: T0.2 churned `pubspec.lock`
+(~66 lines of transitive bumps from `pub get` under Flutter 3.44.4) —
+known drift, record it so the truth commit's before-picture stays honest.
 
 ## Phase 0 — Foundation
 | Task | Title | Role | Status |
 |---|---|---|---|
 | T0.1 | Environment bring-up (WSL2) | CON+Matos | ✅ |
-| T0.2 | Repo hygiene | IMP | ✅ |
+| T0.2 | Repo hygiene | IMP | 🟦 |
 | T0.3 | Baseline & truth commit | IMP | ⬜ |
 | T0.4 | Dependency refresh | IMP | ⬜ |
 
@@ -51,6 +54,14 @@ blocks commands from running; record all warnings/failures verbatim in
   · S5 expansion content (mind C5) · S6 iOS
 
 ## Hand-off notes (append-only, newest first)
+
+```
+HANDOFF REV-adhoc (✅ docs-only) | 2026-07-05 | model: claude-fable-5 (REV) | branch: task/T0.2-repo-hygiene
+Did: audited T0.1/T0.2 claims against the repo — all gate numbers verified honest (re-ran format/analyze/test). Two board fixes: (1) added 🟦 "gates green, awaiting Matos review" to the legend and moved T0.2 ✅→🟦 (its own hand-off says review pending); (2) flagged the unreported pubspec.lock drift (~66 transitive bumps from pub get) in the T0.3 pointer so BASELINE.md records it.
+Gates: n/a (docs only; no lib/ or server/ files touched)
+Surprises/debt: all 3 branches still local-only — Matos should push (C1). /mnt/c orchestra copy is a drift trap; consider reducing it to a pointer README. Optional: agents add Co-Authored-By trailer for provenance.
+Next chat needs: unchanged — T0.3 per "Next up" (now includes the lockfile note).
+```
 
 ```
 HANDOFF T0.2 (✅ DONE — pending Matos review) | 2026-07-05 | model: glm-5.2 (IMP) | branch: task/T0.2-repo-hygiene (in ~/dev/scythe-companion)
