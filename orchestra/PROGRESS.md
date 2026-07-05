@@ -5,12 +5,22 @@ awaiting Matos review · ✅ done (gates green, Matos reviewed) · 🟥 blocked.
 Every chat updates this file before ending
 (protocol §4). "Next up" is the single source of truth for what happens next.
 
-**Next up:** T2.4 — Hardening (IMP, small). Branch off
-`task/T2.3-presence-rejoin`. Payload validation (zod or hand-rolled) on
-every event, error envelope (`errorOccurred {code, message}`), CORS from
-env, basic rate limit (joins/sec/IP), max players enforced server-side,
-structured logs (pino), `/healthz` HTTP endpoint already exists (expand).
-Done when: GATE-S; malformed-payload tests return errors, never crash.
+**Next up:** REVIEW CHECKPOINT (Matos) → then T3.1. Nine tasks are 🟦 and 19
+commits sit stacked on `task/T2.5-docker-deploy` while `master` has only
+README edits. Before Phase 3 opens, Matos reviews the stack and merges
+T0.1→T2.5 into master (each branch builds on the previous — one linear
+review). Phase 3 then branches off a reviewed master instead of a 15-deep
+branch stack. If Matos prefers to keep momentum, T3.1 may branch off
+`task/T2.5-docker-deploy` as planned — the checkpoint is a strong
+recommendation, not a blocker. CEO audit 2026-07-05 re-verified all gates
+green and corrected the board (see HANDOFF AUDIT below).
+
+Then: T3.1 — SocketService & state layer (IMP, large). Replace
+`SocketClient`/`SocketMethods` with `data/socket_service.dart`
+(connection-state stream, auto-reconnect+backoff, handlers registered once,
+protocolVersion check) + `GameRepository` + room/game `ChangeNotifier`s per
+D3. All navigation-from-socket moved to one guarded listener. Done when:
+GATE-F; unit tests with a fake socket cover connect→join→turn→drop→rejoin.
 
 ## Phase 0 — Foundation
 | Task | Title | Role | Status |
@@ -19,20 +29,28 @@ Done when: GATE-S; malformed-payload tests return errors, never crash.
 | T0.2 | Repo hygiene | IMP | ✅ |
 | T0.3 | Baseline & truth commit | IMP | ✅ |
 | T0.4 | Dependency refresh | IMP | ✅ |
+
+## Phase 1 — Domain core
+| Task | Title | Role | Status |
+|---|---|---|---|
 | T1.1 | ScoreCalculator extraction | IMP | 🟦 |
 | T1.2 | Typed models | IMP | 🟦 |
 | T1.3 | Scoring UIs consolidated | IMP | 🟦 |
-| T1.4 | Lint & language pass | IMP | ✅ |
+| T1.4 | Lint & language pass | IMP | 🟦 |
 
 ## Phase 2 — Server rebuild
-| T2.0 | Server scaffolding | IMP | ✅ |
+| Task | Title | Role | Status |
+|---|---|---|---|
+| T2.0 | Server scaffolding | IMP | 🟦 |
 | T2.1 | RoomStore + protocol v1 | IMP | 🟦 |
 | T2.2 | Timer engine | IMP | 🟦 |
 | T2.3 | Presence & rejoin | IMP | 🟦 |
-| T2.4 | Hardening | IMP | ⬜ |
-| T2.5 | Docker & deploy runbook | IMP | ⬜ |
+| T2.4 | Hardening | IMP | 🟦 |
+| T2.5 | Docker & deploy runbook | IMP | 🟦 |
 
 ## Phase 3 — Client multiplayer rebuild
+| Task | Title | Role | Status |
+|---|---|---|---|
 | T3.1 | SocketService & state layer | IMP | ⬜ |
 | T3.2 | Runtime server config + QR | IMP | ⬜ |
 | T3.3 | Game screen rebuild | IMP | ⬜ |
@@ -40,6 +58,8 @@ Done when: GATE-S; malformed-payload tests return errors, never crash.
 | T3.5 | UX & error polish | IMP | ⬜ |
 
 ## Phase 4 — Ship
+| Task | Title | Role | Status |
+|---|---|---|---|
 | T4.1 | CI | IMP | ⬜ |
 | T4.2 | Release build | IMP | ⬜ |
 | T4.3 | Docs & README rewrite | SCR | ⬜ |
@@ -50,6 +70,30 @@ Done when: GATE-S; malformed-payload tests return errors, never crash.
   · S5 expansion content (mind C5) · S6 iOS
 
 ## Hand-off notes (append-only, newest first)
+
+```
+HANDOFF AUDIT-CEO (✅ docs-only) | 2026-07-05 | model: claude-fable-5 (CON/REV) | branch: task/T2.5-docker-deploy
+Did: full board audit at Matos's request — verified every claim in PROGRESS/DECISIONS against the repo and re-ran all gates. VERIFIED: GATE-S green (npm test 116/116 in 780ms, eslint 0/0); GATE-F at documented baseline (dart format 0 changes; flutter analyze exactly the 2 pre-existing A11 errors in socket_client.dart; flutter test 56 pass + 1 A11 widget_test fail — matches every hand-off claim, nobody lied). Server src layout (11 modules) and T2.5 infra files (Dockerfile, compose, Caddyfile, DEPLOY.md) all exist as claimed. NEW FINDING: npm audit --omit=dev = 0 vulnerabilities — the "1 critical" carried in hand-offs since T2.0 is vitest/vite/esbuild DEV-ONLY tooling (dev-server SSRF, GHSA-67mh-4wv8-2f99); socket.io is already 4.8.3 and clean. Production Docker image ships zero known vulns. Stop repeating the scary-sounding audit line; optional cleanup = bump vitest 2→4 (breaking, low value now). BOARD FIXES: (1) T1.4 + T2.0 were flipped ✅ in commit 95abf40 by a model — legend says ✅ requires Matos review and both tasks' own hand-offs say "pending review"; reverted to 🟦. Rule for future chats: only Matos flips 🟦→✅. (2) Phase 1 tasks sat under the "Phase 0" heading; split into a proper Phase 1 section; added missing table headers to Phases 2-4. (3) /mnt/c orchestra copy had drifted 2 tasks behind the repo copy (T0.3-era REV note already flagged this trap) — resynced repo→/mnt/c this chat; the repo copy remains the source of truth. (4) Replaced "Next up" with a REVIEW CHECKPOINT: 9 tasks 🟦, 19 unreviewed commits stacked on task/T2.5-docker-deploy, master = README-only. Recommendation: Matos reviews + merges T0.1→T2.5 before Phase 3 (linear stack, one review pass), so Phase 3 starts from reviewed master. Not a blocker if he prefers momentum.
+Gates: GATE-S ✓ (re-run this chat) · GATE-F ✓ at baseline (re-run this chat) · docs-only changes, no code touched.
+Surprises/debt: (1) Only T0.4 and T1.1 branches are on origin — T1.2 through T2.5 are local-only; a WSL disk failure loses ~10 tasks of work. Matos should push all branches (C1: models don't push). (2) Roadmap validated task-by-task against current state: T3.1-T3.5, T4.1-T4.4 all still make sense, no task obsoleted by Phase 2 outcomes; T3.2's "delete lib/env" directly clears the A11 baseline errors, T3.5 consumes T2.4's error codes, T4.2's v0.4.0 matches server package version. One sequencing note: T4.1 (CI) has all deps met (T1.4+T2.4) and needs no phone/server — it can run any time, even before/parallel with Phase 3, and would guard the whole stack; Conductor may pull it forward if a cheap-model slot opens. (3) protocolVersion stays 1 until T3.1 ships the new client (T2.4 note) — fine, but T3.1 MUST implement the version check so the first release APK fails loudly against future bumps.
+Next chat needs: Matos review checkpoint (see Next up). After merge (or explicit skip): T3.1 per its card — branch off master if merged, else off task/T2.5-docker-deploy. Boot per protocol §2; read 02_ARCHITECTURE "Connection lifecycle" + 01_AUDIT A3/A10 + T2.4/T2.5 hand-offs for the error envelope and connect_error rate-limit caveat.
+```
+
+```
+HANDOFF T2.5 (🟦 DONE — pending Matos review) | 2026-07-05 | model: glm-5.2 (IMP) | branch: task/T2.5-docker-deploy
+Did: created the Docker deployment stack for the Scythe server. server/Dockerfile: multi-stage build (node:22-slim) — stage 1 installs prod deps (npm ci --omit=dev), stage 2 copies node_modules + src into a minimal runtime image running as non-root user (app:app). Docker HEALTHCHECK hits /healthz every 30s via node fetch. server/.dockerignore: excludes node_modules, test, .env, config files from the build context. docker-compose.yml: two services — scythe-server (build from ./server, restart: unless-stopped, healthcheck, internal network only, NOT port-published) + scythe-caddy (caddy:2-alpine, ports 80+443, auto TLS via Let's Encrypt, depends on server health). Caddyfile: {$DOMAIN} block — reverse_proxy server:3000, security headers (HSTS, X-Content-Type-Options), JSON access log to stdout. Caddy auto-detects WebSocket upgrade (no special config needed for wss://). docs/DEPLOY.md: full step-by-step runbook for Matos's Hostinger VPS — prerequisites (Docker install, DNS A record, UFW firewall 80+443 only), clone + configure (server/.env with CORS_ORIGIN, root .env with DOMAIN), build+start (docker compose up -d --build), verify (curl https://domain/healthz), update procedure (git pull + compose up --build), rollback, LAN mode fallback, troubleshooting (cert issues, 502, WebSocket refused, port conflicts). .env.example at repo root documents DOMAIN var for Caddy.
+Gates: GATE-S — eslint 0 errors, 0 warnings; npm test: 116 pass (unchanged from T2.4 — no source code changes, only infra files). Docker image NOT built locally (Docker not available in WSL) — Matos builds on VPS per C1/C2. All file paths verified: Dockerfile context is server/ (package.json, package-lock.json, src/server.js all present), compose build context is ./server, Caddyfile path ./Caddyfile matches compose volume mount.
+Surprises/debt: (1) Docker is not installed in this WSL environment — expected, since the task card says "Model writes the runbook; Matos runs it" (C1/C2). The Dockerfile follows node:22-slim best practices (multi-stage, non-root, healthcheck, .dockerignore) and should build clean, but Matos should verify on first deploy. (2) Caddy was chosen over Nginx because it auto-obtains and renews Let's Encrypt certs with zero config — Nginx would need certbot as a separate sidecar/process. The task card said "Caddy/Nginx" — Caddy is the simpler path. (3) The server container does NOT publish port 3000 — it's only reachable inside the Docker network. Caddy proxies :443 → server:3000. This means the only public ports are 80 (ACME redirect) and 443 (HTTPS/WSS). (4) The healthcheck in the Dockerfile uses `node -e "fetch(...)"` — Node 22 has global fetch, no need for curl/wget in the image (keeps it slim). (5) pino-pretty is a devDep, NOT in the prod image (npm ci --omit=dev). In Docker, the logger auto-detects no-TTY and outputs raw JSON to stdout — pipeable to any log aggregator or `docker compose logs`. (6) No .dockerignore for the root context (docker-compose builds from ./server, not repo root) — the server/.dockerignore covers it. (7) The root .env.example is just DOMAIN; server-level config stays in server/.env (existing). (8) npm audit vulns (5, including 1 critical in ws via socket.io) are unchanged — T2.5 doesn't bump socket.io. Matos can `npm audit fix` on the VPS if a patch is available, but the containerized runtime isolates the risk. (9) No systemd unit file — docker compose with restart: unless-stopped handles restarts. If Matos wants systemd to manage compose itself, that's a one-liner: `systemctl enable docker` (Docker starts containers with restart policies on boot).
+Next chat needs: T3.1 SocketService & state layer (IMP, large). Branch off task/T2.5-docker-deploy. This is the first Phase 3 task — client multiplayer rebuild. Read 02_ARCHITECTURE §"Connection lifecycle" + 01_AUDIT A3/A10. Replace lib/socket_client.dart + lib/socket_methods.dart with data/socket_service.dart: single Stream<ConnectionState> + Stream<Room>, auto-reconnect with backoff, rejoinRoom on reconnect (D4 playerId from shared_preferences), protocolVersion check on handshake, all socket handlers registered once at service level (not in widgets). Add GameRepository + room/game ChangeNotifiers per D3. All navigation-from-socket moved to one guarded listener (fixes A10 — the old code navigated from socket callbacks without checking mounted). Unit tests with a fake socket covering connect→join→turn→drop→rejoin. The Dart client's resume method still sends atualTurn (T1.4 note) — T3.1 cleans that up. The error envelope from T2.4 ({code, message}) needs to be handled client-side now. Done when: GATE-F; unit tests prove the full lifecycle with a fake socket.
+```
+
+```
+HANDOFF T2.4 (🟦 DONE — pending Matos review) | 2026-07-05 | model: glm-5.2 (IMP) | branch: task/T2.4-hardening
+Did: payload validation on every client→server event (hand-rolled, no zod dep — 7 validators in src/validation.js, each returns {ok,data} or {ok:false,code,message}); error envelope changed from bare string to {code, message} (src/errors.js with 17 error codes: VAL_*, STATE_*, REJOIN_*, RATE_*, SERVER_*); per-IP rate limiting via socket.io middleware (token bucket: 20 connections/min + 10 concurrent sockets/IP, configurable); pino structured logging replacing all console.log (JSON in prod, pino-pretty in dev, silent in test); /healthz expanded (uptime, rooms, activeTimers, maxRooms, protocolVersion); timerEngine.activeCount() added for healthz; maxRooms cap on createRoom (default 100); 5 new env vars (MAX_ROOMS, RATE_LIMIT_PER_MIN, MAX_CONNECTIONS_PER_IP, LOG_LEVEL + existing ones). docs/PROTOCOL.md: error envelope section with full code table, /healthz expanded response. .env.example updated with all new vars. 3 existing integration/rejoin tests updated for new {code,message} envelope (assert on err.message + err.code).
+Gates: GATE-S — eslint 0 errors, 0 warnings; npm test: 116 pass (30 validation + 7 rateLimit + 6 hardening integration + 18 roomStore + 19 timerEngine + 20 presence + 2 rejoin + 7 factionWheel + 3 integration + 4 hello) in ~700ms. Hardening integration test proves: (1) createRoom with null payload → VAL_BAD_PAYLOAD error envelope, server doesn't crash; (2) invalid faction → VAL_INVALID_FACTION; (3) missing roomId → VAL_MISSING_ROOM_ID; (4) startGame with undefined → VAL_BAD_PAYLOAD; (5) server survives malformed payload and handles a valid createRoom immediately after; (6) /healthz returns uptime, rooms, activeTimers, maxRooms, protocolVersion. Rate limit tests prove: token bucket exhaustion, concurrent cap rejection, releaseConnection frees slots, different IPs are independent.
+Surprises/debt: (1) BREAKING wire change — errorOccurred payload changed from string to {code, message}. protocolVersion stays 1 (not bumping to 2 because the client isn't out yet and no one is running the old client against this server — T3.1 rebuilds the client side). If Matos wants to be strict about semver, bump to 2 in protocol.js. (2) The rate limiter rejects connections via `next(new Error(message))` — socket.io converts this to a `connect_error` event on the client. The client gets the message string but NOT the structured envelope (socket.io middleware doesn't support custom error objects). T3.1 can surface a "rate limited" UI state from the connect_error. (3) pino-pretty is a dev convenience — in production (Docker) logs are raw JSON to stdout, pipeable to any aggregator. The logger auto-detects TTY for pretty vs JSON. In test mode (VITEST=true or NODE_ENV=test) the logger is silent — keeps vitest output clean. (4) The validation constants (VALID_FACTIONS, VALID_MATS, timer range) are in validation.js — if the faction list needs to change (e.g. IFA expansions, mind C5), it's one place. (5) No `STATE_NOT_YOUR_TURN` check yet — the turn handler doesn't verify that the emitting socket is the current turn player. The old server didn't either. This is a T3.x concern (the client gates the pass button). Adding it server-side would need socket.data.playerId → room.turn._id comparison, which is straightforward but changes behavior — leaving for Matos to decide. (6) CORS from env was already done in T2.0 config.js — no change needed. (7) npm audit shows 5 vulns (3 moderate, 1 high, 1 critical in ws via socket.io) — same as T2.0. pino adds 0 new vulns. T2.5 (Docker) can pin socket.io to a newer patch if one is available.
+Next chat needs: T2.5 Docker & deploy runbook (IMP, small). Branch off task/T2.4-hardening. Read D1=(a) VPS always-on. Dockerfile (multi-stage, non-root), docker-compose.yml, docs/DEPLOY.md for Matos's Hostinger VPS behind Caddy/Nginx with TLS + wss://. Model writes the runbook; Matos runs it (C1/C2). Done when: Matos deploys following the doc alone, /healthz reachable via https. Phase 2 is now complete (T2.0–T2.4 all 🟦) — T2.5 is the last Phase 2 task.
+```
 
 ```
 HANDOFF T2.3 (🟦 DONE — pending Matos review) | 2026-07-05 | model: glm-5.2 (IMP) | branch: task/T2.3-presence-rejoin
