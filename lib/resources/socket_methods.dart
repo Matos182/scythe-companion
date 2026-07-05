@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 
 import 'package:flutter/material.dart';
-import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:socket_io_client/socket_io_client.dart';
@@ -97,7 +96,7 @@ class SocketMethods {
       RoomDataProvider room =
           Provider.of<RoomDataProvider>(context, listen: false);
       if (_socketClient.id == room.roomData['turn']['_id']) {
-        FlutterBackgroundService().invoke("showNotification");
+        // TODO[T3.4]: fire flutter_local_notifications "your turn" alert
       }
     });
   }

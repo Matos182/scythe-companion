@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
 
-import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:wakelock/wakelock.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import '../resources/socket_methods.dart';
 import '../widgets/turn.dart';
 import '../provider/room_data_provider.dart';
@@ -21,32 +20,7 @@ class _GamePageState extends State<GamePage> {
   final _socketMethods = SocketMethods();
   late int _turnIndex;
   late int _turnTimer;
-  TimeOfDay _notiInterval = TimeOfDay.now();
-
-  triggerNoti() {
-    if (TimeOfDay.now() != _notiInterval) {
-      AwesomeNotifications().createNotification(
-        content: NotificationContent(
-          id: 10,
-          channelKey: 'high_importance_channel',
-          title: 'It\'s YOUR turn!!!',
-          body: 'Timer: ${_printFormatedTime(_turnTimer)}',
-          largeIcon: 'assets/logo.png',
-          displayOnBackground: true,
-        ),
-      );
-      _notiInterval = TimeOfDay.now();
-    }
-    setState(() {});
-  }
-
-  Future<void> wakeLockEnable() async {
-    await Wakelock.enable();
-  }
-
-  Future<void> wakeLockDisable() async {
-    await Wakelock.disable();
-  }
+  // TODO[T3.4]: implement "your turn" local notification via flutter_local_notifications
 
   String _printFormatedTime(int seconds) {
     Duration duration = Duration(seconds: seconds);
@@ -62,13 +36,13 @@ class _GamePageState extends State<GamePage> {
     super.initState();
     _socketMethods.updateRoomListener(context);
     _socketMethods.turnListener(context);
-    wakeLockEnable();
+    WakelockPlus.enable();
   }
 
   @override
   void dispose() {
     super.dispose();
-    wakeLockDisable();
+    WakelockPlus.disable();
   }
 
   @override

@@ -1,42 +1,14 @@
 // SPDX-License-Identifier: MIT
+//
+// T0.4: The old background service (flutter_background_service +
+// awesome_notifications) was structurally broken — it spawned an isolate
+// that created its own phantom socket connection (audit A9). Both packages
+// were removed. This file is kept as a placeholder; the full notification
+// replacement lands in T3.4 using flutter_local_notifications fired from
+// the foreground socket listener.
+//
+// TODO[T3.4]: implement "your turn" local notification via
+// flutter_local_notifications, fired from SocketService on newTurn when
+// the app is backgrounded. No background isolate, no phantom socket.
 
-import 'dart:ui';
-import 'package:awesome_notifications/awesome_notifications.dart';
-import 'package:flutter_background_service/flutter_background_service.dart';
-import 'package:flutter_background_service_android/flutter_background_service_android.dart';
-import '../resources/socket_methods.dart';
-import '../provider/room_data_provider.dart';
-
-Future<void> initializeService() async {
-  final service = FlutterBackgroundService();
-  await service.configure(
-      iosConfiguration: IosConfiguration(),
-      androidConfiguration: AndroidConfiguration(
-          onStart: onStart, isForegroundMode: false, autoStart: true));
-  service.startService();
-}
-
-@pragma('vm:entry-point')
-void onStart(ServiceInstance service) async {
-  DartPluginRegistrant.ensureInitialized();
-  if (service is AndroidServiceInstance) {
-    final socketMethods = SocketMethods();
-    final roomProvider = RoomDataProvider();
-    roomProvider.roomDataStream.listen((roomData) async {
-      if (roomData['turn']['socketID'] == socketMethods.socketClient.id) {
-        AwesomeNotifications().createNotification(
-          content: NotificationContent(
-            id: 10,
-            channelKey: 'high_importance_channel',
-            title: 'It\'s YOUR turn!!!',
-            body: 'Go to Game Page!!',
-            largeIcon: 'assets/logo.png',
-            displayOnBackground: true,
-          ),
-        );
-      } else {
-        return;
-      }
-    });
-  }
-}
+// Intentionally empty — no background service in T0.4.
