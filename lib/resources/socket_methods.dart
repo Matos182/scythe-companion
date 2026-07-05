@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 
-//import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:go_router/go_router.dart';
@@ -99,16 +98,6 @@ class SocketMethods {
           Provider.of<RoomDataProvider>(context, listen: false);
       if (_socketClient.id == room.roomData['turn']['_id']) {
         FlutterBackgroundService().invoke("showNotification");
-        //   AwesomeNotifications().createNotification(
-        //     content: NotificationContent(
-        //       id: 10,
-        //       channelKey: 'high_importance_channel',
-        //       title: 'It\'s YOUR turn!!!',
-        //       body: 'It\'s YOUR turn!!!',
-        //       largeIcon: 'assets/logo.png',
-        //       displayOnBackground: true,
-        //     ),
-        //   );
       }
     });
   }

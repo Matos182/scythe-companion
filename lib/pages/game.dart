@@ -1,11 +1,8 @@
 // SPDX-License-Identifier: MIT
 
-//import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/material.dart';
-//import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:provider/provider.dart';
-//import 'package:vibration/vibration.dart';
 import 'package:wakelock/wakelock.dart';
 import '../resources/socket_methods.dart';
 import '../widgets/turn.dart';
@@ -28,7 +25,6 @@ class _GamePageState extends State<GamePage> {
 
   triggerNoti() {
     if (TimeOfDay.now() != _notiInterval) {
-      //FlutterBackgroundService().invoke("showNotification");
       AwesomeNotifications().createNotification(
         content: NotificationContent(
           id: 10,
@@ -73,7 +69,6 @@ class _GamePageState extends State<GamePage> {
   void dispose() {
     super.dispose();
     wakeLockDisable();
-    //Vibration.cancel();
   }
 
   @override
@@ -81,12 +76,6 @@ class _GamePageState extends State<GamePage> {
     RoomDataProvider room = Provider.of<RoomDataProvider>(context);
     _turnIndex = room.roomData['turnIndex'];
     _turnTimer = room.roomData['players'][_turnIndex]['timer'];
-
-    // if (room.roomData['turn']['socketID'] == _socketMethods.socketClient.id) {
-    //   triggerNoti();
-    // }
-    // Vibration.vibrate(
-    //     pattern: [500, 300, 40000, 300], intensities: [80, 80]);
 
     return Scaffold(
         backgroundColor: bgColor,

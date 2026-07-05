@@ -32,7 +32,7 @@ This app serves as a supplementary tool for physical multiplayer games of Scythe
 
 > The server needs to be running for the App to work properly.
 
-1. Clone the repository to your local machine using: ```git clone https://github.com/Matos182/scythe-coin-calculator.git```
+1. Clone the repository to your local machine using: ```git clone https://github.com/Matos182/scythe-companion.git```
 2. Create a [Mongoose](https://www.mongodb.com/) account and insert credentials in `./server/index.js` file.
 3. Insert the public IPAddress of the host server in `./lib/resources/socket_client.dart` file.
 4. In the project folder, open a terminal and upgrade your Flutter dependencies using: ```flutter pub get```
@@ -62,6 +62,12 @@ This project is licensed under the [MIT License](LICENSE).
 -   Inspired by the board game [Scythe](https://stonemaiergames.com/games/scythe/) created by Jamey Stegmaier.
 -   App is written with Dart and built with Flutter.
 -   The server is written in JavaScript and operated on a [Node.js](https://nodejs.org/en) server, using [MongoDB](https://www.mongodb.com/).
+
+## Internal Documentation
+
+This repository is maintained as part of a multi-model development relay.
+Internal coordination documents (audit, architecture, roadmap, decisions,
+and progress) live in the [`orchestra/`](./orchestra/) directory.
 
 ## Buy me a Coffee
 
