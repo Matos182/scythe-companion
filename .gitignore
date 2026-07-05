@@ -49,3 +49,8 @@ app.*.map.json
 
 # Server dependencies
 server/node_modules/
+
+# AI
+CLAUDE.md
+AGENTS.md
+
