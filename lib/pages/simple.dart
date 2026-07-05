@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-/// [Players] class represents a player in the Scythe Coin Calculator app.
+/// [ScoreEntry] class represents a player in the Scythe Coin Calculator app.
 
 // ignore_for_file: dangling_library_doc_comments
 
@@ -28,8 +28,8 @@ class _SimplePageState extends State<SimplePage> {
   final List<TextEditingController> controllers =
       List.generate(7, (index) => TextEditingController());
 
-  Players player = Players('Player', 0, 0, 0, 0, 0, 0, 0);
-  List<Players> results = [];
+  ScoreEntry player = ScoreEntry('Player', 0, 0, 0, 0, 0, 0, 0);
+  List<ScoreEntry> results = [];
 
   /// [convert] function extracts data from text controllers, calculates the player's score,
   /// and adds the player's data to the results list.

@@ -22,8 +22,7 @@ class _LobbyPageState extends State<LobbyPage> {
     super.initState();
     _socketMethods.updateRoomListener(context);
     roomIdController = TextEditingController(
-      text:
-          Provider.of<RoomDataProvider>(context, listen: false).roomData['_id'],
+      text: Provider.of<RoomDataProvider>(context, listen: false).room.id,
     );
   }
 
@@ -35,7 +34,8 @@ class _LobbyPageState extends State<LobbyPage> {
 
   @override
   Widget build(BuildContext context) {
-    RoomDataProvider room = Provider.of<RoomDataProvider>(context);
+    RoomDataProvider provider = Provider.of<RoomDataProvider>(context);
+    final room = provider.room;
 
     return Column(mainAxisAlignment: MainAxisAlignment.center, children: [
       const Text(
@@ -93,18 +93,18 @@ class _LobbyPageState extends State<LobbyPage> {
                     'Mat',
                   ))),
         ],
-        rows: room.roomData['players'].map<DataRow>((dynamic player) {
+        rows: room.players.map<DataRow>((player) {
           return DataRow(
             cells: <DataCell>[
               DataCell(Text(
-                player['nickname'],
+                player.nickname,
                 textAlign: TextAlign.center,
               )),
               DataCell(Text(
-                player['playerfaction'],
+                player.playerfaction,
                 style: const TextStyle(fontStyle: FontStyle.italic),
               )),
-              DataCell(Text(player['playermat'])),
+              DataCell(Text(player.playermat)),
             ],
           );
         }).toList(),
@@ -112,10 +112,9 @@ class _LobbyPageState extends State<LobbyPage> {
       Container(
         padding: const EdgeInsets.fromLTRB(7, 50, 7, 7),
         child: ElevatedButton(
-            onPressed: room.roomData['creator']['socketID'] ==
-                    _socketMethods.socketClient.id
+            onPressed: room.creator.socketID == _socketMethods.socketClient.id
                 ? () {
-                    _socketMethods.startGame(room.roomData['_id']);
+                    _socketMethods.startGame(room.id);
                   }
                 : null,
             style: ButtonStyle(

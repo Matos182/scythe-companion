@@ -2,30 +2,35 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../domain/models/room.dart';
 import '../models/players.dart';
 
 class RoomDataProvider extends ChangeNotifier {
   // Notify Listener
 
-  Map<String, dynamic> _roomData = {};
-  Map<String, dynamic> get roomData => _roomData;
+  Room _room = const Room();
+  Room get room => _room;
 
-  //Stream controller and stream for broadcasting roomData updates
-  final StreamController<Map<String, dynamic>> _roomDataController =
-      StreamController.broadcast();
-  Stream<Map<String, dynamic>> get roomDataStream => _roomDataController.stream;
+  /// Raw payload kept for the adapter seam — T2.1 may need to inspect
+  /// fields not yet mapped to typed models. Remove when all fields are
+  /// typed and the server protocol is stable.
+  Map<String, dynamic> get roomData => _room.toJson();
 
-  void updateRoomData(Map<String, dynamic> data) {
-    _roomData = data;
-    _roomDataController.add(data);
+  //Stream controller and stream for broadcasting room updates
+  final StreamController<Room> _roomController = StreamController.broadcast();
+  Stream<Room> get roomStream => _roomController.stream;
+
+  void updateRoom(Map<String, dynamic> data) {
+    _room = Room.fromJson(data);
+    _roomController.add(_room);
     notifyListeners();
   }
 
-  List<Players> _players = [];
-  List<Players> get players => _players;
+  List<ScoreEntry> _players = [];
+  List<ScoreEntry> get players => _players;
 
-  // Update method to update roomData and notify listeners
-  void updatePlayers(List<Players> data) {
+  // Update method to update players list and notify listeners
+  void updatePlayers(List<ScoreEntry> data) {
     _players = data;
     notifyListeners();
   }
@@ -42,6 +47,6 @@ class RoomDataProvider extends ChangeNotifier {
   @override
   void dispose() {
     super.dispose();
-    _roomDataController.close();
+    _roomController.close();
   }
 }

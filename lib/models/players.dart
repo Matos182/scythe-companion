@@ -1,10 +1,16 @@
 // SPDX-License-Identifier: MIT
 
-/// [Players] class represents a player in the Scythe Coin Calculator app.
+/// [ScoreEntry] represents a player's score breakdown in the offline
+/// Scythe Coin Calculator.
+///
+/// Renamed from `Players` (T1.2) to avoid confusion with the multiplayer
+/// [Player] model in `domain/models/player.dart`. This class is mutable
+/// because the calculator pages build it field-by-field from text
+/// controllers before computing the final `result`.
 
 // ignore_for_file: dangling_library_doc_comments
 
-class Players {
+class ScoreEntry {
   String name = '';
   int popularity = 0;
   int stars = 0;
@@ -14,8 +20,8 @@ class Players {
   int buildings = 0;
   int result = 0;
 
-  /// Constructor for initializing a player with provided attributes.
-  Players(this.name, this.popularity, this.stars, this.lands, this.resources,
+  /// Constructor for initializing a score entry with provided attributes.
+  ScoreEntry(this.name, this.popularity, this.stars, this.lands, this.resources,
       this.buildings, this.coins, this.result);
 }
 
