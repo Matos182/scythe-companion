@@ -195,13 +195,15 @@ describe('RoomStore', () => {
       expect(wire).toHaveProperty('turn');
       expect(wire).toHaveProperty('creator');
       expect(wire).not.toHaveProperty('lastActivity');
-      expect(wire.players[0]).not.toHaveProperty('connected');
+      expect(wire.players[0]).toHaveProperty('connected');
+      expect(wire.players[0].connected).toBe(true);
       expect(wire.players[0]).toHaveProperty('_id');
       expect(wire.players[0]).toHaveProperty('nickname');
       expect(wire.players[0]).toHaveProperty('socketID');
       expect(wire.players[0]).toHaveProperty('playerfaction');
       expect(wire.players[0]).toHaveProperty('playermat');
       expect(wire.players[0]).toHaveProperty('timer');
+      expect(wire.players[0]).toHaveProperty('remainingSec');
     });
   });
 
