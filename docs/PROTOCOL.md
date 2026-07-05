@@ -2,7 +2,7 @@
 
 **Protocol version:** 1  
 **Transport:** socket.io (client 3.x ↔ server 4.x)  
-**Last updated:** 2026-07-05 (T2.2)
+**Last updated:** 2026-07-05 (T2.3)
 
 > A `protocolVersion` field is included in the `/healthz` HTTP response
 > and in the handshake. If the client's expected version differs, it must
@@ -61,6 +61,7 @@ events carry a serialized room object:
 | `playermat` | string | One of: 1, 2, 2A, 3, 3A, 4, 5 |
 | `timer` | int | Per-turn allowance in seconds (config, A6) |
 | `remainingSec` | int | Live countdown value (A6: distinct from `timer`) |
+| `connected` | boolean | Presence flag — is the player's socket connected? (T2.3) |
 
 ---
 
@@ -169,6 +170,36 @@ compatibility; renamed to `resume` in Dart code (T1.4).
 ```
 
 **Server response:** `updateRoom` (to the room).
+
+---
+
+#### `rejoinRoom`
+
+Reconnects a previously-seated player to their room using their persistent
+playerId (D4). The server remaps the socket ID, marks the player connected,
+and sends the full room state. If the timer was auto-paused because this
+player disconnected during their turn, it is resumed on rejoin.
+
+The client stores `playerId` in `shared_preferences` and sends it here on
+reconnect — the server never sends playerId to the client after the initial
+create/join.
+
+```json
+{
+  "roomCode": "AB3KMN",
+  "playerId": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+**Server response:**
+- `joinRoomSuccess` (to the rejoining socket) with the room state.
+- `updateRoom` (to the room) with updated presence.
+
+If the player was the current turn player and the timer was auto-paused on
+their disconnect, the server also resumes the timer and broadcasts the
+un-paused state.
+
+**Errors:** `errorOccurred` — "Room code and player ID are required.", "Room or player not found."
 
 ---
 

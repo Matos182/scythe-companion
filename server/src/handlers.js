@@ -6,6 +6,7 @@
  * Ports createRoom / joinRoom / startGame from the old `index.js` but
  * uses the in-memory RoomStore (D2) instead of MongoDB.  Timer/turn/
  * pause/resume handlers are wired to the timerEngine (T2.2).
+ * Presence/rejoin handlers wired in T2.3.
  *
  * Every handler validates input, emits the appropriate wire event
  * (see src/protocol.js), and keeps the old event-name vocabulary so
@@ -21,6 +22,7 @@ import {
   TURN,
   PAUSE,
   RESUME,
+  REJOIN_ROOM,
   CREATE_ROOM_SUCCESS,
   JOIN_ROOM_SUCCESS,
   UPDATE_ROOM,
@@ -52,7 +54,9 @@ export function registerHandlers(io, store) {
         timer,
       });
 
-      // Store playerId → socketId mapping for this connection
+      // Write the socket ID back to the player (T2.3 — was '' in T2.1).
+      store.markConnected(room._id, playerId, true, socket.id);
+
       socket.data.playerId = playerId;
       socket.data.roomCode = room._id;
 
@@ -88,6 +92,9 @@ export function registerHandlers(io, store) {
         socket.emit(ERROR_OCCURRED, 'Player faction or player mat is already picked in this room.');
         return;
       }
+
+      // Write the socket ID back to the player (T2.3 — was '' in T2.1).
+      store.markConnected(roomId, result.playerId, true, socket.id);
 
       socket.data.playerId = result.playerId;
       socket.data.roomCode = roomId;
@@ -168,9 +175,72 @@ export function registerHandlers(io, store) {
       io.to(roomId).emit(UPDATE_ROOM, RoomStore.serialize(updated));
     });
 
+    // ── rejoinRoom ──────────────────────────────────────────────
+    //
+    // Reconnect a previously-seated player to their room using their
+    // persistent playerId (D4).  Remaps the socket ID, marks them
+    // connected, and sends the full room state.  If the timer was
+    // auto-paused on their disconnect and it's still their turn, the
+    // timer is resumed.
+    socket.on(REJOIN_ROOM, ({ roomCode, playerId }) => {
+      if (!roomCode || !playerId) {
+        socket.emit(ERROR_OCCURRED, 'Room code and player ID are required.');
+        return;
+      }
+
+      const room = store.rejoin(roomCode, playerId, socket.id);
+      if (!room) {
+        socket.emit(ERROR_OCCURRED, 'Room or player not found.');
+        return;
+      }
+
+      socket.data.playerId = playerId;
+      socket.data.roomCode = roomCode;
+
+      socket.join(roomCode);
+
+      // If the timer was auto-paused because this player disconnected
+      // during their turn, resume it before broadcasting so the state
+      // reflects the resumed timer in a single update.
+      if (room.isPaused && store.isCurrentTurnPlayer(roomCode, playerId)) {
+        timerEngine.resume(io, store, roomCode);
+      }
+
+      const wire = RoomStore.serialize(store.get(roomCode));
+      socket.emit(JOIN_ROOM_SUCCESS, wire);
+      io.to(roomCode).emit(UPDATE_ROOM, wire);
+
+      console.log(`[server] player ${playerId} rejoined room ${roomCode}`);
+    });
+
+    // ── disconnect ──────────────────────────────────────────────
+    //
+    // Mark the player disconnected, keep their seat (A3 fix — the old
+    // server had no disconnect handler and the rejoin branch was dead
+    // code).  If it was their turn, auto-pause the timer so the game
+    // doesn't burn their time while they're away.  Broadcast the
+    // updated presence to the room.
     socket.on('disconnect', () => {
       console.log(`[server] client disconnected: ${socket.id}`);
-      // T2.3 handles presence/rejoin — seat kept, timer auto-pause policy.
+
+      const { playerId, roomCode } = socket.data;
+      if (!playerId || !roomCode) return;
+
+      const room = store.get(roomCode);
+      if (!room) return;
+
+      store.markConnected(roomCode, playerId, false);
+
+      // Auto-pause if it was the disconnecting player's turn.
+      const wasCurrentTurn = store.isCurrentTurnPlayer(roomCode, playerId);
+      if (wasCurrentTurn && !room.isPaused) {
+        timerEngine.pause(store, roomCode);
+      }
+
+      // Transfer creator if the creator disconnected.
+      store.transferCreator(roomCode);
+
+      io.to(roomCode).emit(UPDATE_ROOM, RoomStore.serialize(store.get(roomCode)));
     });
   });
 }

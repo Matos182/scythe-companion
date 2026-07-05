@@ -278,8 +278,91 @@ export class RoomStore {
   }
 
   /**
+   * Find a player in a room by playerId.
+   * @param {string} roomCode
+   * @param {string} playerId
+   * @returns {Player | undefined}
+   */
+  findPlayer(roomCode, playerId) {
+    const room = this.rooms.get(roomCode);
+    if (!room) return undefined;
+    return room.players.find((p) => p._id === playerId);
+  }
+
+  /**
+   * Mark a player's presence (connected/disconnected).  Returns the
+   * player or undefined if room/player not found.
+   * @param {string} roomCode
+   * @param {string} playerId
+   * @param {boolean} connected
+   * @param {string} [socketID] — new socket id (set on reconnect)
+   * @returns {Player | undefined}
+   */
+  markConnected(roomCode, playerId, connected, socketID) {
+    const player = this.findPlayer(roomCode, playerId);
+    if (!player) return undefined;
+    player.connected = connected;
+    if (socketID !== undefined) {
+      player.socketID = socketID;
+    }
+    this.touch(roomCode);
+    return player;
+  }
+
+  /**
+   * Rejoin a player to a room: remap socketID, mark connected.
+   * Returns the room or null if room/player not found.
+   * @param {string} roomCode
+   * @param {string} playerId
+   * @param {string} socketID
+   * @returns {Room | null}
+   */
+  rejoin(roomCode, playerId, socketID) {
+    const room = this.rooms.get(roomCode);
+    if (!room) return null;
+    const player = room.players.find((p) => p._id === playerId);
+    if (!player) return null;
+    player.socketID = socketID;
+    player.connected = true;
+    room.lastActivity = Date.now();
+    return room;
+  }
+
+  /**
+   * Is the given player the current turn player?
+   * @param {string} roomCode
+   * @param {string} playerId
+   * @returns {boolean}
+   */
+  isCurrentTurnPlayer(roomCode, playerId) {
+    const room = this.rooms.get(roomCode);
+    if (!room || !room.turn) return false;
+    return room.turn._id === playerId;
+  }
+
+  /**
+   * Transfer creator to the first connected player if the current
+   * creator is disconnected.  Returns the new creator or the existing
+   * one if no transfer was needed.
+   * @param {string} roomCode
+   * @returns {Player | undefined}
+   */
+  transferCreator(roomCode) {
+    const room = this.rooms.get(roomCode);
+    if (!room) return undefined;
+    if (room.creator.connected) return room.creator;
+    const next = room.players.find((p) => p.connected);
+    if (next) {
+      room.creator = next;
+      room.lastActivity = Date.now();
+    }
+    return room.creator;
+  }
+
+  /**
    * Serialize a room for the wire (matches Dart client's Room.fromJson).
-   * Strips internal fields (lastActivity, connected).
+   * Strips internal fields (lastActivity).  Includes `connected` for
+   * presence badges (T2.3).
    * @param {Room} room
    * @returns {object}
    */
@@ -298,6 +381,7 @@ export class RoomStore {
         playermat: p.playermat,
         timer: p.timer,
         remainingSec: p.remainingSec,
+        connected: p.connected,
       })),
       turn: room.turn ? {
         _id: room.turn._id,
@@ -307,6 +391,7 @@ export class RoomStore {
         playermat: room.turn.playermat,
         timer: room.turn.timer,
         remainingSec: room.turn.remainingSec,
+        connected: room.turn.connected,
       } : null,
       creator: room.creator ? {
         _id: room.creator._id,
@@ -316,6 +401,7 @@ export class RoomStore {
         playermat: room.creator.playermat,
         timer: room.creator.timer,
         remainingSec: room.creator.remainingSec,
+        connected: room.creator.connected,
       } : null,
     };
   }

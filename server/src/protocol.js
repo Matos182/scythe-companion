@@ -17,6 +17,7 @@ export const START_GAME = 'startGame';
 export const TURN = 'turn';
 export const PAUSE = 'pause';
 export const RESUME = 'toContinue'; // renamed in T1.4; wire name stays until T2.1
+export const REJOIN_ROOM = 'rejoinRoom';
 
 // ── Server → Client (outgoing events) ──────────────────────────────
 export const CREATE_ROOM_SUCCESS = 'createRoomSuccess';
