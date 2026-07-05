@@ -1,31 +1,16 @@
 // SPDX-License-Identifier: MIT
 
-import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import './models/route_config.dart';
 import './provider/room_data_provider.dart';
-import 'resources/back_services.dart';
 
-void main() async {
+// TODO[T3.4]: initialize flutter_local_notifications here (channel setup,
+// Android 13+ POST_NOTIFICATIONS permission flow). The old awesome_notifications
+// setup + background service were removed in T0.4 — full replacement lands in T3.4.
+
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await initializeService();
-  AwesomeNotifications().initialize(null, [
-    NotificationChannel(
-      channelGroupKey: 'high_importance_channel',
-      channelKey: 'high_importance_channel',
-      channelName: 'Group 1',
-      channelDescription: 'Notification Channel',
-      defaultColor: const Color(0xff029031),
-      enableLights: true,
-      enableVibration: true,
-      ledColor: const Color(0xff029031),
-      importance: NotificationImportance.Max,
-      channelShowBadge: true,
-      playSound: true,
-      criticalAlerts: true,
-    )
-  ]);
   runApp(const MyApp());
 }
 

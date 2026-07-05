@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 
-import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/route_const.dart';
@@ -14,15 +13,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  @override
-  void initState() {
-    AwesomeNotifications().isNotificationAllowed().then((isAllowed) async {
-      if (!isAllowed) {
-        await AwesomeNotifications().requestPermissionToSendNotifications();
-      }
-    });
-    super.initState();
-  }
+  // TODO[T3.4]: request POST_NOTIFICATIONS permission here via
+  // flutter_local_notifications (replaces the old awesome_notifications check).
 
   @override
   Widget build(BuildContext context) {
