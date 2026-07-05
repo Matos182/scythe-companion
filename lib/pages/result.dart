@@ -3,14 +3,15 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../domain/winner.dart';
 import '../provider/room_data_provider.dart';
 import '../utils/colors.dart';
 import '../models/players.dart';
 
 /// [ResultPage] displays the final results of the Scythe Coin Calculator.
+/// Shows the winner(s) — including ties — and a sorted score table.
 
 class ResultPage extends StatefulWidget {
-  /// Constructor to initialize [ResultPage] with a list of results.
   const ResultPage({super.key});
 
   @override
@@ -24,12 +25,23 @@ class _ResultPageState extends State<ResultPage> {
   Widget build(BuildContext context) {
     _roomDataProvider = Provider.of<RoomDataProvider>(context, listen: false);
     // Filter out empty or repeated named players
-    List<ScoreEntry> results = _roomDataProvider.players
+    final List<ScoreEntry> results = _roomDataProvider.players
         .where((player) => player.name.isNotEmpty)
         .toSet()
         .toList();
-    // Sort the results list based on the result property in descending order
-    results.sort((a, b) => b.result.compareTo(a.result));
+
+    final ranked = rankScores(results);
+    final winners = findWinners(results);
+
+    final String winnerText;
+    if (winners.isEmpty) {
+      winnerText = 'No results';
+    } else if (winners.length == 1) {
+      winnerText = 'Winner: ${winners.first.name} (${winners.first.result})';
+    } else {
+      final names = winners.map((w) => w.name).join(', ');
+      winnerText = 'Tie! $names (${winners.first.result} each)';
+    }
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -58,16 +70,14 @@ class _ResultPageState extends State<ResultPage> {
           children: <Widget>[
             FittedBox(
                 child: Text(
-              'Final Score - Winner:  ${results.first.name}',
+              winnerText,
               style: const TextStyle(
                 color: bgColorBar,
                 fontSize: 24,
               ),
             )),
-            const SizedBox(
-                height: 20), // Padding some space from the winner and the table
-            // Build the dynamic table based on sorted results list
-            if (results.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            if (ranked.isNotEmpty) ...[
               Padding(
                   padding: const EdgeInsets.all(8),
                   child: Table(
@@ -77,31 +87,31 @@ class _ResultPageState extends State<ResultPage> {
                       width: 3,
                     ),
                     children: [
-                      // Table header
                       _buildTableRow(
                         header: true,
                         children: const [
-                          'Player Name',
-                          'Popularity',
+                          '#',
+                          'Name',
+                          'Pop',
                           'Stars',
                           'Lands',
-                          'Resources',
+                          'Res',
                           'Coins',
-                          'Building Coins',
-                          'TOTAL COINS',
+                          'Bldg',
+                          'TOTAL',
                         ],
                       ),
-                      // Table rows for each Result
-                      for (var result in results)
+                      for (var r in ranked)
                         _buildTableRow(children: [
-                          result.name,
-                          result.popularity.toString(),
-                          result.stars.toString(),
-                          result.lands.toString(),
-                          result.resources.toString(),
-                          result.coins.toString(),
-                          result.buildings.toString(),
-                          result.result.toString(),
+                          '${r.rank}',
+                          r.entry.name,
+                          r.entry.popularity.toString(),
+                          r.entry.stars.toString(),
+                          r.entry.lands.toString(),
+                          r.entry.resources.toString(),
+                          r.entry.coins.toString(),
+                          r.entry.buildings.toString(),
+                          r.entry.result.toString(),
                         ]),
                     ],
                   ))
@@ -113,7 +123,6 @@ class _ResultPageState extends State<ResultPage> {
     );
   }
 
-  // Function to build a TableRow with optional header styling
   TableRow _buildTableRow({
     required List<String> children,
     bool header = false,

@@ -1,19 +1,15 @@
 // SPDX-License-Identifier: MIT
 
-/// [ScoreEntry] class represents a player in the Scythe Coin Calculator app.
-
-// ignore_for_file: dangling_library_doc_comments
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../domain/score_calculator.dart';
 import '../domain/models/score_input.dart';
 import '../models/players.dart';
-import '../widgets/widgets.dart';
+import '../widgets/score_form.dart';
 import '../utils/colors.dart';
 
-/// [SimplePage] is a StatefulWidget representing the simple calculator page of the Scythe Coin Calculator app.
-/// Users input data for a player here and can convert all items to coins
+/// [SimplePage] is a StatefulWidget representing the simple calculator page.
+/// Users input data for a single player and convert all items to coins.
 
 class SimplePage extends StatefulWidget {
   const SimplePage({super.key});
@@ -22,19 +18,16 @@ class SimplePage extends StatefulWidget {
   State<SimplePage> createState() => _SimplePageState();
 }
 
-/// [_SimplePageState] is the state class for the [SimplePage].
-
 class _SimplePageState extends State<SimplePage> {
+  final _formKey = GlobalKey<FormState>();
   final List<TextEditingController> controllers =
       List.generate(7, (index) => TextEditingController());
 
   ScoreEntry player = ScoreEntry('Player', 0, 0, 0, 0, 0, 0, 0);
-  List<ScoreEntry> results = [];
-
-  /// [convert] function extracts data from text controllers, calculates the player's score,
-  /// and adds the player's data to the results list.
 
   void convert() {
+    if (!_formKey.currentState!.validate()) return;
+
     player.name = controllers[0].text;
     player.popularity = int.tryParse(controllers[1].text) ?? 0;
     player.stars = int.tryParse(controllers[2].text) ?? 0;
@@ -55,8 +48,6 @@ class _SimplePageState extends State<SimplePage> {
     ));
     setState(() {});
   }
-
-  /// [dispose] function disposes of text controllers.
 
   @override
   void dispose() {
@@ -103,22 +94,13 @@ class _SimplePageState extends State<SimplePage> {
                           color: bgColorBar,
                         ),
                       ),
-                      // Text fields for player data input
-                      buildTextField(controllers[0], "Player", Icons.face_6,
-                          TextInputType.name),
-                      buildTextField(controllers[1], "Popularity",
-                          Icons.favorite, TextInputType.number),
-                      buildTextField(controllers[2], "Stars", Icons.star,
-                          TextInputType.number),
-                      buildTextField(controllers[3], "Lands", Icons.hexagon,
-                          TextInputType.number),
-                      buildTextField(controllers[4], "Resources",
-                          Icons.my_library_add_rounded, TextInputType.number),
-                      buildTextField(controllers[5], "Building Coins",
-                          Icons.home_filled, TextInputType.number),
-                      buildTextField(controllers[6], "Coins", Icons.circle,
-                          TextInputType.number),
-
+                      Form(
+                        key: _formKey,
+                        child: ScoreForm(
+                          controllers: controllers,
+                          onSubmit: convert,
+                        ),
+                      ),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(7, 4, 7, 30),
                         child: ElevatedButton(
