@@ -71,7 +71,7 @@ class _GamePageState extends State<GamePage> {
                         size: 30,
                       ),
                       onPressed: () {
-                        _socketMethods.toContinue(room.id, _turnIndex);
+                        _socketMethods.resume(room.id, _turnIndex);
                       })
                   : room.turn.socketID == _socketMethods.socketClient.id
                       ? IconButton(
@@ -133,13 +133,12 @@ class _GamePageState extends State<GamePage> {
                       ? const ElevatedButton(
                           onPressed: null,
                           style: ButtonStyle(
-                              elevation: MaterialStatePropertyAll(7),
-                              backgroundColor: MaterialStatePropertyAll(
+                              elevation: WidgetStatePropertyAll(7),
+                              backgroundColor: WidgetStatePropertyAll(
                                   unavailableColor), // Disabled color
                               foregroundColor:
-                                  MaterialStatePropertyAll(yourTurnText),
-                              fixedSize:
-                                  MaterialStatePropertyAll(Size(250, 70))),
+                                  WidgetStatePropertyAll(yourTurnText),
+                              fixedSize: WidgetStatePropertyAll(Size(250, 70))),
                           child: Text(
                             "GAME IS PAUSED!",
                             style: TextStyle(fontSize: 18),

@@ -88,7 +88,7 @@ class _CreateRoomState extends State<CreateRoom> {
                             fillColor: bgColorBar,
                             focusedBorder: border,
                             enabledBorder: border),
-                        value: _selectedPlayerFaction,
+                        initialValue: _selectedPlayerFaction,
                         items: playerFactions
                             .map((item) => DropdownMenuItem<String>(
                                 value: item,
@@ -109,7 +109,7 @@ class _CreateRoomState extends State<CreateRoom> {
                             fillColor: bgColorBar,
                             focusedBorder: border,
                             enabledBorder: border),
-                        value: _selectedPlayerMat,
+                        initialValue: _selectedPlayerMat,
                         items: playerMats
                             .map((item) => DropdownMenuItem<String>(
                                 value: item,
@@ -130,7 +130,7 @@ class _CreateRoomState extends State<CreateRoom> {
                             fillColor: bgColorBar,
                             focusedBorder: border,
                             enabledBorder: border),
-                        value: _selectedPlayerTimer,
+                        initialValue: _selectedPlayerTimer,
                         items: playerTimers
                             .map((item) => DropdownMenuItem<String>(
                                 value: item,
@@ -161,12 +161,11 @@ class _CreateRoomState extends State<CreateRoom> {
                               _secondsPlayerTimer);
                         },
                         style: const ButtonStyle(
-                            elevation: MaterialStatePropertyAll(7),
-                            backgroundColor:
-                                MaterialStatePropertyAll(bgColorBar),
+                            elevation: WidgetStatePropertyAll(7),
+                            backgroundColor: WidgetStatePropertyAll(bgColorBar),
                             foregroundColor:
-                                MaterialStatePropertyAll(buttonTextColor),
-                            fixedSize: MaterialStatePropertyAll(Size(150, 50))),
+                                WidgetStatePropertyAll(buttonTextColor),
+                            fixedSize: WidgetStatePropertyAll(Size(150, 50))),
                         child: const Text("Create Room")),
                   ),
                 ]))));

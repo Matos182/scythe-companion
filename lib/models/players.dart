@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: MIT
 
+library;
+
 /// [ScoreEntry] represents a player's score breakdown in the offline
 /// Scythe Coin Calculator.
 ///
 /// Renamed from `Players` (T1.2) to avoid confusion with the multiplayer
 /// [Player] model in `domain/models/player.dart`. This class is mutable
-/// because the calculator pages build it field-by-field from text
 /// controllers before computing the final `result`.
-
-// ignore_for_file: dangling_library_doc_comments
 
 class ScoreEntry {
   String name = '';

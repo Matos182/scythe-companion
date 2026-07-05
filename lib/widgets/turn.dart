@@ -35,15 +35,15 @@ class _TurnPageState extends State<TurnPage> {
               }
             : null,
         style: ButtonStyle(
-            elevation: const MaterialStatePropertyAll(7),
-            backgroundColor: MaterialStateProperty.resolveWith<Color>((states) {
-              if (states.contains(MaterialState.disabled)) {
+            elevation: const WidgetStatePropertyAll(7),
+            backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+              if (states.contains(WidgetState.disabled)) {
                 return unavailableColor; // Disabled color
               }
               return yourTurnColor; // Regular color
             }),
-            foregroundColor: const MaterialStatePropertyAll(yourTurnText),
-            fixedSize: const MaterialStatePropertyAll(Size(150, 50))),
+            foregroundColor: const WidgetStatePropertyAll(yourTurnText),
+            fixedSize: const WidgetStatePropertyAll(Size(150, 50))),
         child: const Text("Pass Turn"));
   }
 }

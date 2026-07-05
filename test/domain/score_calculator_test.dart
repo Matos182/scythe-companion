@@ -73,7 +73,7 @@ void main() {
     test('odd resources at tier 2 (×2)', () {
       // 9 → 4 pairs × 2 = 8
       expect(
-        coinsFor(ScoreInput(popularity: 7, resources: 9)),
+        coinsFor(const ScoreInput(popularity: 7, resources: 9)),
         8,
       );
     });
@@ -81,7 +81,7 @@ void main() {
     test('odd resources at tier 3 (×3)', () {
       // 9 → 4 pairs × 3 = 12
       expect(
-        coinsFor(ScoreInput(popularity: 13, resources: 9)),
+        coinsFor(const ScoreInput(popularity: 13, resources: 9)),
         12,
       );
     });
@@ -120,7 +120,7 @@ void main() {
     /// state leakage (it's a pure function, so each call is independent).
     test('7 players, mixed tiers, each score is independent', () {
       final inputs = <ScoreInput>[
-        ScoreInput(
+        const ScoreInput(
             name: 'P1',
             popularity: 18,
             stars: 6,
@@ -128,7 +128,7 @@ void main() {
             resources: 10,
             buildings: 5,
             coins: 3),
-        ScoreInput(
+        const ScoreInput(
             name: 'P2',
             popularity: 13,
             stars: 4,
@@ -136,7 +136,7 @@ void main() {
             resources: 6,
             buildings: 2,
             coins: 7),
-        ScoreInput(
+        const ScoreInput(
             name: 'P3',
             popularity: 7,
             stars: 3,
@@ -144,7 +144,7 @@ void main() {
             resources: 5,
             buildings: 1,
             coins: 0),
-        ScoreInput(
+        const ScoreInput(
             name: 'P4',
             popularity: 6,
             stars: 2,
@@ -152,7 +152,7 @@ void main() {
             resources: 3,
             buildings: 0,
             coins: 2),
-        ScoreInput(
+        const ScoreInput(
             name: 'P5',
             popularity: 0,
             stars: 1,
@@ -160,7 +160,7 @@ void main() {
             resources: 2,
             buildings: 1,
             coins: 1),
-        ScoreInput(
+        const ScoreInput(
             name: 'P6',
             popularity: 12,
             stars: 5,
@@ -168,7 +168,7 @@ void main() {
             resources: 8,
             buildings: 3,
             coins: 4),
-        ScoreInput(
+        const ScoreInput(
             name: 'P7',
             popularity: 1,
             stars: 0,

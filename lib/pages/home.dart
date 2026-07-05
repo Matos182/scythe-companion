@@ -44,13 +44,12 @@ class _HomePageState extends State<HomePage> {
                             context.goNamed(RouteNames.simple);
                           },
                           style: const ButtonStyle(
-                              elevation: MaterialStatePropertyAll(7),
+                              elevation: WidgetStatePropertyAll(7),
                               backgroundColor:
-                                  MaterialStatePropertyAll(bgColorBar),
+                                  WidgetStatePropertyAll(bgColorBar),
                               foregroundColor:
-                                  MaterialStatePropertyAll(buttonTextColor),
-                              fixedSize:
-                                  MaterialStatePropertyAll(Size(150, 50))),
+                                  WidgetStatePropertyAll(buttonTextColor),
+                              fixedSize: WidgetStatePropertyAll(Size(150, 50))),
                           child: const Text("Simple Convert")),
                     ),
                     Padding(
@@ -60,13 +59,12 @@ class _HomePageState extends State<HomePage> {
                             context.goNamed(RouteNames.addplayer);
                           },
                           style: const ButtonStyle(
-                              elevation: MaterialStatePropertyAll(7),
+                              elevation: WidgetStatePropertyAll(7),
                               backgroundColor:
-                                  MaterialStatePropertyAll(bgColorBar),
+                                  WidgetStatePropertyAll(bgColorBar),
                               foregroundColor:
-                                  MaterialStatePropertyAll(buttonTextColor),
-                              fixedSize:
-                                  MaterialStatePropertyAll(Size(150, 50))),
+                                  WidgetStatePropertyAll(buttonTextColor),
+                              fixedSize: WidgetStatePropertyAll(Size(150, 50))),
                           child: const Text("Game Results")),
                     ),
                     Padding(
@@ -76,13 +74,12 @@ class _HomePageState extends State<HomePage> {
                             context.goNamed(RouteNames.create);
                           },
                           style: const ButtonStyle(
-                              elevation: MaterialStatePropertyAll(7),
+                              elevation: WidgetStatePropertyAll(7),
                               backgroundColor:
-                                  MaterialStatePropertyAll(bgColorBar),
+                                  WidgetStatePropertyAll(bgColorBar),
                               foregroundColor:
-                                  MaterialStatePropertyAll(buttonTextColor),
-                              fixedSize:
-                                  MaterialStatePropertyAll(Size(150, 50))),
+                                  WidgetStatePropertyAll(buttonTextColor),
+                              fixedSize: WidgetStatePropertyAll(Size(150, 50))),
                           child: const Text("Create Room")),
                     ),
                     Padding(
@@ -92,13 +89,12 @@ class _HomePageState extends State<HomePage> {
                             context.goNamed(RouteNames.join);
                           },
                           style: const ButtonStyle(
-                              elevation: MaterialStatePropertyAll(7),
+                              elevation: WidgetStatePropertyAll(7),
                               backgroundColor:
-                                  MaterialStatePropertyAll(bgColorBar),
+                                  WidgetStatePropertyAll(bgColorBar),
                               foregroundColor:
-                                  MaterialStatePropertyAll(buttonTextColor),
-                              fixedSize:
-                                  MaterialStatePropertyAll(Size(150, 50))),
+                                  WidgetStatePropertyAll(buttonTextColor),
+                              fixedSize: WidgetStatePropertyAll(Size(150, 50))),
                           child: const Text("Join Room")),
                     ),
                   ]),
