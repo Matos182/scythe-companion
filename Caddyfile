@@ -1,0 +1,26 @@
+# Caddy reverse proxy for the Scythe Companion server.
+#
+# Caddy automatically obtains and renews Let's Encrypt TLS certificates.
+# It terminates TLS and proxies both HTTP (/healthz) and WebSocket (wss://)
+# traffic to the Node server on port 3000 inside the Docker network.
+#
+# Replace {$DOMAIN} with your actual domain (set in .env or docker-compose).
+
+{$DOMAIN} {
+	# Reverse proxy all traffic to the Node server.
+	# Caddy auto-detects WebSocket upgrade headers — no special config needed.
+	reverse_proxy server:3000
+
+	# Security headers.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+
+	# Access log (JSON to stdout — pipeable to log aggregators).
+	log {
+		output stdout
+		format json
+	}
+}

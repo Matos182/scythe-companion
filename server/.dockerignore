@@ -1,0 +1,15 @@
+# Files not needed in the Docker image.
+node_modules
+npm-debug.log
+.env
+.env.*
+!.env.example
+test
+vitest.config.js
+eslint.config.js
+.git
+.gitignore
+Dockerfile
+.dockerignore
+README.md
+*.md
