@@ -8,9 +8,10 @@
  * pause/resume handlers are wired to the timerEngine (T2.2).
  * Presence/rejoin handlers wired in T2.3.
  *
- * Every handler validates input, emits the appropriate wire event
- * (see src/protocol.js), and keeps the old event-name vocabulary so
- * the existing Flutter client keeps working.
+ * T2.4 hardening: every event validates its payload via validation.js,
+ * errors are sent as structured envelopes `{ code, message }`, rate
+ * limiting is enforced at connection time, and structured logging
+ * replaces console.log.
  */
 
 import { RoomStore } from './roomStore.js';
@@ -29,21 +30,58 @@ import {
   NEW_TURN,
   ERROR_OCCURRED,
 } from './protocol.js';
+import { ERROR_CODES, errorEnvelope } from './errors.js';
+import {
+  validateCreateRoom,
+  validateJoinRoom,
+  validateRoomAction,
+  validateRejoinRoom,
+} from './validation.js';
+import { allowConnection, releaseConnection } from './rateLimit.js';
+import logger from './logger.js';
 
 /**
  * Register all socket handlers on an io instance.
  *
  * @param {import('socket.io').Server} io
  * @param {RoomStore} store
+ * @param {{maxRooms?: number}} [options]
  */
-export function registerHandlers(io, store) {
+export function registerHandlers(io, store, options = {}) {
+  const maxRooms = options.maxRooms ?? Number(process.env.MAX_ROOMS ?? 100);
+
+  // ── Connection-rate middleware (per-IP token bucket + concurrent cap) ──
+  io.use((socket, next) => {
+    const ip = socket.handshake.address;
+    const result = allowConnection(ip);
+    if (!result.allowed) {
+      // Reject the connection — the client gets a connect_error.
+      next(new Error(result.envelope.message));
+      return;
+    }
+    // Track the IP on the socket so we can release on disconnect.
+    socket.data._ip = ip;
+    next();
+  });
+
   io.on('connection', (socket) => {
-    console.log(`[server] client connected: ${socket.id}`);
+    logger.info({ socketId: socket.id, ip: socket.data._ip }, 'client connected');
 
     // ── createRoom ───────────────────────────────────────────────
-    socket.on(CREATE_ROOM, ({ nickname, playerfaction, playermat, timer }) => {
-      if (!nickname) {
-        socket.emit(ERROR_OCCURRED, 'Please enter a valid nickname!');
+    socket.on(CREATE_ROOM, (payload) => {
+      const validation = validateCreateRoom(payload);
+      if (!validation.ok) {
+        socket.emit(ERROR_OCCURRED, errorEnvelope(validation.code, validation.message));
+        return;
+      }
+      const { nickname, playerfaction, playermat, timer } = validation.data;
+
+      // Server-level room cap (prevents room-spam).
+      if (store.rooms.size >= maxRooms) {
+        socket.emit(ERROR_OCCURRED, errorEnvelope(
+          ERROR_CODES.SERVER_MAX_ROOMS,
+          'Server is full. Please try again later.',
+        ));
         return;
       }
 
@@ -62,34 +100,41 @@ export function registerHandlers(io, store) {
 
       socket.join(room._id);
       io.to(room._id).emit(CREATE_ROOM_SUCCESS, RoomStore.serialize(room));
+      logger.info({ roomCode: room._id, playerId }, 'room created');
     });
 
     // ── joinRoom ─────────────────────────────────────────────────
-    socket.on(JOIN_ROOM, ({ nickname, roomId, playerfaction, playermat }) => {
-      if (!roomId) {
-        socket.emit(ERROR_OCCURRED, 'Please enter a valid Room ID.');
+    socket.on(JOIN_ROOM, (payload) => {
+      const validation = validateJoinRoom(payload);
+      if (!validation.ok) {
+        socket.emit(ERROR_OCCURRED, errorEnvelope(validation.code, validation.message));
         return;
       }
+      const { nickname, roomId, playerfaction, playermat } = validation.data;
 
       const room = store.get(roomId);
       if (!room) {
-        socket.emit(ERROR_OCCURRED, 'Room not found.');
+        socket.emit(ERROR_OCCURRED, errorEnvelope(
+          ERROR_CODES.STATE_ROOM_NOT_FOUND,
+          'Room not found.',
+        ));
         return;
       }
 
       if (!room.isJoin) {
-        socket.emit(ERROR_OCCURRED, 'This game is in progress, try another room');
-        return;
-      }
-
-      if (!nickname) {
-        socket.emit(ERROR_OCCURRED, 'Please enter a valid nickname!');
+        socket.emit(ERROR_OCCURRED, errorEnvelope(
+          ERROR_CODES.STATE_GAME_IN_PROGRESS,
+          'This game is in progress, try another room',
+        ));
         return;
       }
 
       const result = store.join(roomId, { nickname, playerfaction, playermat });
       if (!result) {
-        socket.emit(ERROR_OCCURRED, 'Player faction or player mat is already picked in this room.');
+        socket.emit(ERROR_OCCURRED, errorEnvelope(
+          ERROR_CODES.STATE_FACTION_OR_MAT_TAKEN,
+          'Player faction or player mat is already picked in this room.',
+        ));
         return;
       }
 
@@ -102,58 +147,89 @@ export function registerHandlers(io, store) {
       socket.join(roomId);
       io.to(roomId).emit(UPDATE_ROOM, RoomStore.serialize(result.room));
       socket.emit(JOIN_ROOM_SUCCESS, RoomStore.serialize(result.room));
+      logger.info({ roomCode: roomId, playerId: result.playerId }, 'player joined');
     });
 
     // ── startGame ────────────────────────────────────────────────
-    socket.on(START_GAME, ({ roomId }) => {
+    socket.on(START_GAME, (payload) => {
+      const validation = validateRoomAction(payload);
+      if (!validation.ok) {
+        socket.emit(ERROR_OCCURRED, errorEnvelope(validation.code, validation.message));
+        return;
+      }
+      const { roomId } = validation.data;
+
       const room = store.get(roomId);
       if (!room) {
-        socket.emit(ERROR_OCCURRED, 'Room not found.');
+        socket.emit(ERROR_OCCURRED, errorEnvelope(
+          ERROR_CODES.STATE_ROOM_NOT_FOUND,
+          'Room not found.',
+        ));
         return;
       }
 
       if (room.players.length < 2) {
-        socket.emit(ERROR_OCCURRED, "You aren't playing with Automa!!");
+        socket.emit(ERROR_OCCURRED, errorEnvelope(
+          ERROR_CODES.STATE_SINGLE_PLAYER,
+          "You aren't playing with Automa!!",
+        ));
         return;
       }
 
-      // Use the return value — startGame mutates in place but returns the
-      // same room reference, so this is both safe and explicit (review T2.1).
       const started = store.startGame(roomId);
       store.touch(roomId);
       io.to(roomId).emit(UPDATE_ROOM, RoomStore.serialize(started));
 
-      // Start the 1s tick loop for this room.
       timerEngine.start(io, store, roomId);
-      console.log(`[server] game started in room ${roomId}`);
+      logger.info({ roomCode: roomId }, 'game started');
     });
 
     // ── turn (pass) ──────────────────────────────────────────────
-    socket.on(TURN, ({ roomId }) => {
+    socket.on(TURN, (payload) => {
+      const validation = validateRoomAction(payload);
+      if (!validation.ok) {
+        socket.emit(ERROR_OCCURRED, errorEnvelope(validation.code, validation.message));
+        return;
+      }
+      const { roomId } = validation.data;
+
       const room = store.get(roomId);
       if (!room) {
-        socket.emit(ERROR_OCCURRED, 'Room not found.');
+        socket.emit(ERROR_OCCURRED, errorEnvelope(
+          ERROR_CODES.STATE_ROOM_NOT_FOUND,
+          'Room not found.',
+        ));
         return;
       }
 
       const updated = store.passTurn(roomId);
       if (!updated) {
-        socket.emit(ERROR_OCCURRED, 'Could not pass turn.');
+        socket.emit(ERROR_OCCURRED, errorEnvelope(
+          ERROR_CODES.STATE_PASS_FAILED,
+          'Could not pass turn.',
+        ));
         return;
       }
 
       io.to(roomId).emit(NEW_TURN, RoomStore.serialize(updated));
-
-      // Restart the timer for the next player (clears any existing interval
-      // first — guarantees ≤ 1 interval per room, fixing A1).
       timerEngine.start(io, store, roomId);
     });
 
     // ── pause ────────────────────────────────────────────────────
-    socket.on(PAUSE, ({ roomId }) => {
+    socket.on(PAUSE, (payload) => {
+      const validation = validateRoomAction(payload);
+      if (!validation.ok) {
+        socket.emit(ERROR_OCCURRED, errorEnvelope(validation.code, validation.message));
+        return;
+      }
+      const { roomId } = validation.data;
+
       const room = store.get(roomId);
       if (!room) {
-        socket.emit(ERROR_OCCURRED, 'Room not found.');
+        socket.emit(ERROR_OCCURRED, errorEnvelope(
+          ERROR_CODES.STATE_ROOM_NOT_FOUND,
+          'Room not found.',
+        ));
         return;
       }
 
@@ -163,10 +239,20 @@ export function registerHandlers(io, store) {
     });
 
     // ── toContinue (resume) ──────────────────────────────────────
-    socket.on(RESUME, ({ roomId }) => {
+    socket.on(RESUME, (payload) => {
+      const validation = validateRoomAction(payload);
+      if (!validation.ok) {
+        socket.emit(ERROR_OCCURRED, errorEnvelope(validation.code, validation.message));
+        return;
+      }
+      const { roomId } = validation.data;
+
       const room = store.get(roomId);
       if (!room) {
-        socket.emit(ERROR_OCCURRED, 'Room not found.');
+        socket.emit(ERROR_OCCURRED, errorEnvelope(
+          ERROR_CODES.STATE_ROOM_NOT_FOUND,
+          'Room not found.',
+        ));
         return;
       }
 
@@ -182,15 +268,20 @@ export function registerHandlers(io, store) {
     // connected, and sends the full room state.  If the timer was
     // auto-paused on their disconnect and it's still their turn, the
     // timer is resumed.
-    socket.on(REJOIN_ROOM, ({ roomCode, playerId }) => {
-      if (!roomCode || !playerId) {
-        socket.emit(ERROR_OCCURRED, 'Room code and player ID are required.');
+    socket.on(REJOIN_ROOM, (payload) => {
+      const validation = validateRejoinRoom(payload);
+      if (!validation.ok) {
+        socket.emit(ERROR_OCCURRED, errorEnvelope(validation.code, validation.message));
         return;
       }
+      const { roomCode, playerId } = validation.data;
 
       const room = store.rejoin(roomCode, playerId, socket.id);
       if (!room) {
-        socket.emit(ERROR_OCCURRED, 'Room or player not found.');
+        socket.emit(ERROR_OCCURRED, errorEnvelope(
+          ERROR_CODES.REJOIN_NOT_FOUND,
+          'Room or player not found.',
+        ));
         return;
       }
 
@@ -210,7 +301,7 @@ export function registerHandlers(io, store) {
       socket.emit(JOIN_ROOM_SUCCESS, wire);
       io.to(roomCode).emit(UPDATE_ROOM, wire);
 
-      console.log(`[server] player ${playerId} rejoined room ${roomCode}`);
+      logger.info({ roomCode, playerId }, 'player rejoined');
     });
 
     // ── disconnect ──────────────────────────────────────────────
@@ -221,7 +312,12 @@ export function registerHandlers(io, store) {
     // doesn't burn their time while they're away.  Broadcast the
     // updated presence to the room.
     socket.on('disconnect', () => {
-      console.log(`[server] client disconnected: ${socket.id}`);
+      logger.info({ socketId: socket.id }, 'client disconnected');
+
+      // Release the rate-limit connection slot.
+      if (socket.data._ip) {
+        releaseConnection(socket.data._ip);
+      }
 
       const { playerId, roomCode } = socket.data;
       if (!playerId || !roomCode) return;

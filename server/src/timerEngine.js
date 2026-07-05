@@ -155,6 +155,18 @@ function has(roomCode) {
 }
 
 /**
+ * Count active (non-paused) timers — for /healthz.
+ * @returns {number}
+ */
+function activeCount() {
+  let count = 0;
+  for (const handle of timers.values()) {
+    if (!handle.paused) count++;
+  }
+  return count;
+}
+
+/**
  * Stop all timers (for graceful shutdown / test teardown).
  */
 function stopAll() {
@@ -163,4 +175,4 @@ function stopAll() {
   }
 }
 
-export { start, pause, resume, stop, stopAll, isActive, has };
+export { start, pause, resume, stop, stopAll, isActive, has, activeCount };

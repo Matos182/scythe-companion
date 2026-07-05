@@ -133,20 +133,20 @@ describe('integration: disconnect → rejoin', () => {
             resolve();
           });
 
-          aliceRejoined.on('errorOccurred', (msg) => {
+          aliceRejoined.on('errorOccurred', (err) => {
             clearTimeout(timeout);
-            reject(new Error(`Rejoin error: ${msg}`));
+            reject(new Error(`Rejoin error: ${err.message}`));
           });
         }
       });
 
-      alice.on('errorOccurred', (msg) => {
+      alice.on('errorOccurred', (err) => {
         clearTimeout(timeout);
-        reject(new Error(`Alice error: ${msg}`));
+        reject(new Error(`Alice error: ${err.message}`));
       });
-      bob.on('errorOccurred', (msg) => {
+      bob.on('errorOccurred', (err) => {
         clearTimeout(timeout);
-        reject(new Error(`Bob error: ${msg}`));
+        reject(new Error(`Bob error: ${err.message}`));
       });
       bob.on('connect_error', reject);
 
@@ -172,9 +172,10 @@ describe('integration: disconnect → rejoin', () => {
         c.emit('rejoinRoom', { roomCode, playerId: 'fake-player-id' });
       });
 
-      c.on('errorOccurred', (msg) => {
+      c.on('errorOccurred', (err) => {
         clearTimeout(timeout);
-        expect(msg).toContain('not found');
+        expect(err.message).toContain('not found');
+        expect(err.code).toBe('REJOIN_NOT_FOUND');
         c.disconnect();
         resolve();
       });

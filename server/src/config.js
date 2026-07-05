@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 /**
  * Centralised environment configuration.
  *
@@ -31,3 +33,31 @@ export const roomTtlHours = Number(process.env.ROOM_TTL_HOURS ?? 3);
  * @type {number}
  */
 export const minTurnSec = Number(process.env.MIN_TURN_SEC ?? 10);
+
+/**
+ * Max concurrent rooms per server instance.  Prevents a single host from
+ * being overwhelmed by room-spam.  Default 100 is plenty for a friends'
+ * game server; raise for a bigger deployment.
+ * @type {number}
+ */
+export const maxRooms = Number(process.env.MAX_ROOMS ?? 100);
+
+/**
+ * Per-IP rate limit for socket connection attempts (per minute).
+ * Default 20 — allows reconnect storms without throttling legitimate play.
+ * @type {number}
+ */
+export const rateLimitPerMin = Number(process.env.RATE_LIMIT_PER_MIN ?? 20);
+
+/**
+ * Max concurrent socket connections per IP.  Default 10 — one player on
+ * a phone, plus reconnect churn, plus a couple of friends on the same NAT.
+ * @type {number}
+ */
+export const maxConnectionsPerIp = Number(process.env.MAX_CONNECTIONS_PER_IP ?? 10);
+
+/**
+ * Pino log level.  'info' for production, 'debug' for dev.
+ * @type {string}
+ */
+export const logLevel = process.env.LOG_LEVEL ?? 'info';
