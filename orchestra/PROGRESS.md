@@ -5,21 +5,26 @@ awaiting Matos review · ✅ done (gates green, Matos reviewed) · 🟥 blocked.
 Every chat updates this file before ending
 (protocol §4). "Next up" is the single source of truth for what happens next.
 
-**Next up:** T0.3 — Baseline & truth commit (IMP, small). Work in
-`~/dev/scythe-companion`, branch off `task/T0.2-repo-hygiene` (carries
-T0.1 + T0.2 work). Run `flutter pub get`, `flutter analyze`, `flutter test`,
-`cd server && npm ci && node --check index.js`; fix nothing except what
-blocks commands from running; record all warnings/failures verbatim in
-`orchestra/BASELINE.md`. Also note there: T0.2 churned `pubspec.lock`
-(~66 lines of transitive bumps from `pub get` under Flutter 3.44.4) —
-known drift, record it so the truth commit's before-picture stays honest.
+**Next up:** T0.4 — Dependency refresh (IMP, medium). Branch off
+`task/T0.3-baseline`. Read BASELINE.md first — it's the yardstick.
+Upgrade `pubspec.yaml` to current majors: `wakelock`→`wakelock_plus`
+(this also kills the `win32 3.1.4`/Dart 3.12 test-compile failure
+BASELINE found), `socket_io_client`→3.x, `go_router` latest,
+`flutter_lints` latest (adopt new lints, don't silence them), drop
+`awesome_notifications` + `flutter_background_service` in favor of
+`flutter_local_notifications` (A9/A14 — full removal lands in T3.4;
+here just make it compile). Migrate breaking APIs mechanically;
+record chosen versions in DECISIONS E4. Done when: GATE-F passes
+except pre-existing test debt noted in BASELINE. Heads-up from
+BASELINE: `flutter test` should start passing after `wakelock` is
+replaced AND `widget_test.dart` is rewritten/deleted (A15).
 
 ## Phase 0 — Foundation
 | Task | Title | Role | Status |
 |---|---|---|---|
 | T0.1 | Environment bring-up (WSL2) | CON+Matos | ✅ |
-| T0.2 | Repo hygiene | IMP | 🟦 |
-| T0.3 | Baseline & truth commit | IMP | ⬜ |
+| T0.2 | Repo hygiene | IMP | ✅ |
+| T0.3 | Baseline & truth commit | IMP | 🟦 |
 | T0.4 | Dependency refresh | IMP | ⬜ |
 
 ## Phase 1 — Domain core
@@ -54,6 +59,14 @@ known drift, record it so the truth commit's before-picture stays honest.
   · S5 expansion content (mind C5) · S6 iOS
 
 ## Hand-off notes (append-only, newest first)
+
+```
+HANDOFF T0.3 (🟦 DONE — pending Matos review) | 2026-07-05 | model: glm-5.2 (IMP) | branch: task/T0.3-baseline (pushed to origin)
+Did: ran all 6 gate commands at task/T0.2-repo-hygiene HEAD, fixed nothing, recorded everything verbatim in orchestra/BASELINE.md. Also: at Matos's direction, untracked AGENTS.md/CLAUDE.md (git rm --cached + gitignored) so the public repo doesn't carry agent coordination files — committed on T0.2 branch before branching T0.3. Pushed all 3 branches (T0.1/T0.2/T0.3) to origin — repo is now public.
+Gates: dart format ✓ (0 changes); flutter pub get ✓ (wakelock discontinued warning); flutter analyze ✗ 2 errors + 57 info (all pre-existing A11 + MaterialState/value deprecations); flutter test ✗ compile fail (A11 + NEW finding: win32 3.1.4 via wakelock incompatible with Dart 3.12 — UnmodifiableUint8ListView removed from dart:typed_data); npm ci ✓ (20 vulns, 1 critical — ws via socket.io 2.x); node --check index.js ✓.
+Surprises/debt: NEW finding beyond audit — `win32 3.1.4` (transitive via discontinued `wakelock 0.6.2`) references `UnmodifiableUint8ListView` which was removed from `dart:typed_data` in Dart 3.12. This means `flutter test` cannot compile regardless of test file content until wakelock is replaced. T0.4 should expect test green only after wakelock→wakelock_plus AND widget_test.dart (A15 counter template) is rewritten/deleted. Also corrected the REV hand-off's pubspec.lock drift note: no live drift on T0.3 — the ~66-line churn was already committed in T0.2 (commit 0447a5c).
+Next chat needs: T0.4 Dependency refresh (IMP, medium). Branch off task/T0.3-baseline. Read BASELINE.md first — it's the yardstick. Replace wakelock→wakelock_plus (kills the win32/test-compile failure), socket_io_client→3.x, go_router latest, flutter_lints latest, drop awesome_notifications+flutter_background_service for flutter_local_notifications (A9/A14 — full removal in T3.4, here just compile). Record chosen versions in DECISIONS E4. GATE-F passes except pre-existing test debt noted in BASELINE.
+```
 
 ```
 HANDOFF REV-adhoc (✅ docs-only) | 2026-07-05 | model: claude-fable-5 (REV) | branch: task/T0.2-repo-hygiene
