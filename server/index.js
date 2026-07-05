@@ -225,31 +225,31 @@ io.on('connection', (socket) => {
 
       // Retrieve room information from the database
       let room = await Room.findById(roomId);
-      let atualTurn = parseInt(room.turnIndex);
+      let currentTurnIndex = parseInt(room.turnIndex);
 
       // Check if it's the last player's turn or not
-      if (atualTurn < (room.players.length - 1)) {
+      if (currentTurnIndex < (room.players.length - 1)) {
         // Move to the next player's turn
         room.turnIndex++;
-        atualTurn++;
-        room.turn = room.players[atualTurn];
+        currentTurnIndex++;
+        room.turn = room.players[currentTurnIndex];
       } else {
         // Move to the first player's turn
         room.turn = room.players[0];
         room.turnIndex = 0;
-        atualTurn = 0;
+        currentTurnIndex = 0;
         room.totalTurns++;
       }
       // Ensure the player's timer is reset to 10 if it's less than 10
-      if (room.players[atualTurn].timer < 10) {
-        room.players[atualTurn].timer = 10
+      if (room.players[currentTurnIndex].timer < 10) {
+        room.players[currentTurnIndex].timer = 10
       }
       // Save room data and emit an event to notify clients about the new turn
       room = await room.save();
       io.to(roomId).emit('newTurn', room);
 
       // Start the timer for the next player
-      startPlayerTimer(roomId, atualTurn);
+      startPlayerTimer(roomId, currentTurnIndex);
 
     } catch (e) {
       console.log(e);
@@ -287,25 +287,25 @@ io.on('connection', (socket) => {
     clearInterval(roomTimerInterval);
 
     let room = await Room.findById(roomId);
-    let atualTurn = parseInt(room.turnIndex);
+    let currentTurnIndex = parseInt(room.turnIndex);
 
-    if (atualTurn < (room.players.length - 1)) {
+    if (currentTurnIndex < (room.players.length - 1)) {
       room.turnIndex++;
-      atualTurn++;
-      room.turn = room.players[atualTurn];
+      currentTurnIndex++;
+      room.turn = room.players[currentTurnIndex];
     } else {
       room.turn = room.players[0];
       room.turnIndex = 0;
-      atualTurn = 0;
+      currentTurnIndex = 0;
       room.totalTurns++;
     }
-    if (room.players[atualTurn].timer < 10) {
-      room.players[atualTurn].timer = 10
+    if (room.players[currentTurnIndex].timer < 10) {
+      room.players[currentTurnIndex].timer = 10
     }
     room = await room.save();
     io.to(roomId).emit('newTurn', room);
     // Start the timer for the next player
-    startPlayerTimer(roomId, atualTurn);
+    startPlayerTimer(roomId, currentTurnIndex);
   }
 
   // This event handler pauses the game
@@ -323,12 +323,12 @@ io.on('connection', (socket) => {
   });
 
   // This event handler resumes the game
-  socket.on('toContinue', async ({ roomId, atualTurn }) => {
+  socket.on('toContinue', async ({ roomId, atualTurn: currentTurnIndex }) => {
     try {
       let room = await Room.findById(roomId);
       room.isPaused = false;
       room = await room.save();
-      startPlayerTimer(roomId, atualTurn);
+      startPlayerTimer(roomId, currentTurnIndex);
 
     } catch (e) {
       console.log(e);

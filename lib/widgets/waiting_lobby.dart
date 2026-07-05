@@ -118,17 +118,16 @@ class _LobbyPageState extends State<LobbyPage> {
                   }
                 : null,
             style: ButtonStyle(
-                elevation: const MaterialStatePropertyAll(7),
+                elevation: const WidgetStatePropertyAll(7),
                 backgroundColor:
-                    MaterialStateProperty.resolveWith<Color>((states) {
-                  if (states.contains(MaterialState.disabled)) {
+                    WidgetStateProperty.resolveWith<Color>((states) {
+                  if (states.contains(WidgetState.disabled)) {
                     return unavailableColor; // Disabled color
                   }
                   return bgColorBar; // Regular color
                 }),
-                foregroundColor:
-                    const MaterialStatePropertyAll(buttonTextColor),
-                fixedSize: const MaterialStatePropertyAll(Size(150, 50))),
+                foregroundColor: const WidgetStatePropertyAll(buttonTextColor),
+                fixedSize: const WidgetStatePropertyAll(Size(150, 50))),
             child: const Text("Start Game")),
       ),
     ]);

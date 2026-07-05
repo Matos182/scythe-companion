@@ -136,7 +136,7 @@ void main() {
     });
 
     test('toJson round-trips', () {
-      final original = TurnState(
+      const original = TurnState(
         turnIndex: 5,
         totalTurns: 2,
         isPaused: true,

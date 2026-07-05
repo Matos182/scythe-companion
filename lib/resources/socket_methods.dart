@@ -52,10 +52,10 @@ class SocketMethods {
     });
   }
 
-  void toContinue(String roomId, int atualTurn) {
+  void resume(String roomId, int currentTurnIndex) {
     _socketClient.emit('toContinue', {
       'roomId': roomId,
-      'atualTurn': atualTurn,
+      'atualTurn': currentTurnIndex,
     });
   }
 

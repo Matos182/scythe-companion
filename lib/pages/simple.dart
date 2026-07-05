@@ -106,13 +106,13 @@ class _SimplePageState extends State<SimplePage> {
                         child: ElevatedButton(
                             onPressed: convert,
                             style: const ButtonStyle(
-                                elevation: MaterialStatePropertyAll(7),
+                                elevation: WidgetStatePropertyAll(7),
                                 backgroundColor:
-                                    MaterialStatePropertyAll(bgColorBar),
+                                    WidgetStatePropertyAll(bgColorBar),
                                 foregroundColor:
-                                    MaterialStatePropertyAll(buttonTextColor),
+                                    WidgetStatePropertyAll(buttonTextColor),
                                 fixedSize:
-                                    MaterialStatePropertyAll(Size(150, 50))),
+                                    WidgetStatePropertyAll(Size(150, 50))),
                             child: const Text("Convert")),
                       ),
                     ])))));

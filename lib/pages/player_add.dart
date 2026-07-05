@@ -141,19 +141,18 @@ class _PlayerAddPageState extends State<PlayerAddPage> {
                       child: ElevatedButton(
                         onPressed: playerCounter < 7 ? convert : null,
                         style: ButtonStyle(
-                          elevation: const MaterialStatePropertyAll(7),
+                          elevation: const WidgetStatePropertyAll(7),
                           backgroundColor:
-                              MaterialStateProperty.resolveWith<Color>(
-                                  (states) {
-                            if (states.contains(MaterialState.disabled)) {
+                              WidgetStateProperty.resolveWith<Color>((states) {
+                            if (states.contains(WidgetState.disabled)) {
                               return const Color.fromARGB(255, 122, 120, 119);
                             }
                             return bgColorBar;
                           }),
                           foregroundColor:
-                              const MaterialStatePropertyAll(buttonTextColor),
+                              const WidgetStatePropertyAll(buttonTextColor),
                           fixedSize:
-                              const MaterialStatePropertyAll(Size(150, 50)),
+                              const WidgetStatePropertyAll(Size(150, 50)),
                         ),
                         child: const Text("Add Player"),
                       ),
@@ -171,19 +170,18 @@ class _PlayerAddPageState extends State<PlayerAddPage> {
                               }
                             : null,
                         style: ButtonStyle(
-                          elevation: const MaterialStatePropertyAll(7),
+                          elevation: const WidgetStatePropertyAll(7),
                           backgroundColor:
-                              MaterialStateProperty.resolveWith<Color>(
-                                  (states) {
-                            if (states.contains(MaterialState.disabled)) {
+                              WidgetStateProperty.resolveWith<Color>((states) {
+                            if (states.contains(WidgetState.disabled)) {
                               return const Color.fromARGB(255, 122, 120, 119);
                             }
                             return bgColorBar;
                           }),
                           foregroundColor:
-                              const MaterialStatePropertyAll(buttonTextColor),
+                              const WidgetStatePropertyAll(buttonTextColor),
                           fixedSize:
-                              const MaterialStatePropertyAll(Size(150, 50)),
+                              const WidgetStatePropertyAll(Size(150, 50)),
                         ),
                         child: const Text("Show Results"),
                       ),
