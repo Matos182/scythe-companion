@@ -2,7 +2,7 @@
 
 **Protocol version:** 1  
 **Transport:** socket.io (client 3.x ↔ server 4.x)  
-**Last updated:** 2026-07-05 (T2.3)
+**Last updated:** 2026-07-05 (T2.4 — error envelope, payload validation, rate limiting)
 
 > A `protocolVersion` field is included in the `/healthz` HTTP response
 > and in the handshake. If the client's expected version differs, it must
@@ -212,7 +212,7 @@ un-paused state.
 | `updateRoom` | Room state changed | Room object |
 | `newTurn` | Turn passed (manual or auto-pass on timeout) | Room object |
 | `tick` | 1s timer tick (T2.2) | `{ roomCode, playerId, remainingSec }` |
-| `errorOccurred` | Any validation error | string (error message) |
+| `errorOccurred` | Any validation error | `{ code, message }` — see Error envelope (T2.4) |
 
 ---
 
@@ -225,9 +225,52 @@ Returns server health + protocol version.
 ```json
 {
   "status": "ok",
-  "protocolVersion": 1
+  "protocolVersion": 1,
+  "uptime": 3600,
+  "rooms": 3,
+  "activeTimers": 2,
+  "maxRooms": 100
 }
 ```
+
+---
+
+## Error envelope (T2.4)
+
+All `errorOccurred` events carry a structured envelope instead of a bare string:
+
+```json
+{
+  "code": "STATE_FACTION_OR_MAT_TAKEN",
+  "message": "Player faction or player mat is already picked in this room."
+}
+```
+
+- `code` — machine-readable identifier, stable across versions. Clients can
+  switch on it for localized error messages or specific UI behaviour.
+- `message` — human-readable English string, suitable for a snackbar.
+
+### Error codes
+
+| Code | Category | Meaning |
+|---|---|---|
+| `VAL_MISSING_NICKNAME` | Validation | Nickname empty or too long |
+| `VAL_MISSING_ROOM_ID` | Validation | Room ID missing |
+| `VAL_MISSING_FIELDS` | Validation | Required fields missing (rejoin) |
+| `VAL_INVALID_TIMER` | Validation | Timer not an integer in [10, 3600] |
+| `VAL_INVALID_FACTION` | Validation | Faction not in the valid set |
+| `VAL_INVALID_MAT` | Validation | Player mat not in the valid set |
+| `VAL_BAD_PAYLOAD` | Validation | Payload is not a non-null object |
+| `STATE_ROOM_NOT_FOUND` | State | Room does not exist |
+| `STATE_GAME_IN_PROGRESS` | State | Room closed (game started) |
+| `STATE_FACTION_OR_MAT_TAKEN` | State | Faction/mat already chosen |
+| `STATE_SINGLE_PLAYER` | State | startGame with < 2 players |
+| `STATE_NOT_YOUR_TURN` | State | Not the current turn player |
+| `STATE_PASS_FAILED` | State | passTurn failed |
+| `REJOIN_NOT_FOUND` | Rejoin | Room or player not found |
+| `RATE_LIMITED` | Rate limit | Too many connection attempts per IP |
+| `RATE_MAX_CONNECTIONS` | Rate limit | Too many concurrent sockets per IP |
+| `SERVER_MAX_ROOMS` | Server | Server room cap reached |
 
 ---
 
@@ -258,4 +301,4 @@ tests (audit A8).
 ## Player IDs (D4)
 
 UUID v4, minted by server at join, stored client-side in
-`shared_preferences`. Enables `rejoinRoom` in T2.3 (not yet implemented).
+`shared_preferences`. Enables `rejoinRoom` (implemented in T2.3).

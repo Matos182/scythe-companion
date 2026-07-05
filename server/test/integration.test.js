@@ -144,9 +144,9 @@ describe('integration: create → join → start', () => {
 
       // Error handler
       [client1, client2, client3].forEach((c) => {
-        c.on('errorOccurred', (msg) => {
+        c.on('errorOccurred', (err) => {
           clearTimeout(timeout);
-          reject(new Error(`Unexpected error: ${msg}`));
+          reject(new Error(`Unexpected error: ${err.message}`));
         });
         c.on('connect_error', reject);
       });
@@ -196,9 +196,10 @@ describe('integration: create → join → start', () => {
         });
       });
 
-      c2.on('errorOccurred', (msg) => {
+      c2.on('errorOccurred', (err) => {
         clearTimeout(timeout);
-        expect(msg).toContain('already picked');
+        expect(err.message).toContain('already picked');
+        expect(err.code).toBe('STATE_FACTION_OR_MAT_TAKEN');
         c1.disconnect();
         c2.disconnect();
         resolve();
@@ -230,9 +231,10 @@ describe('integration: create → join → start', () => {
         c1.emit('startGame', { roomId: room._id });
       });
 
-      c1.on('errorOccurred', (msg) => {
+      c1.on('errorOccurred', (err) => {
         clearTimeout(timeout);
-        expect(msg).toContain('Automa');
+        expect(err.message).toContain('Automa');
+        expect(err.code).toBe('STATE_SINGLE_PLAYER');
         c1.disconnect();
         resolve();
       });
