@@ -28,8 +28,8 @@ class PlayerAddPage extends StatefulWidget {
 class _PlayerAddPageState extends State<PlayerAddPage> {
   late List<TextEditingController> controllers;
   late int playerCounter;
-  late Players player;
-  late List<Players> results;
+  late ScoreEntry player;
+  late List<ScoreEntry> results;
 
   @override
   void initState() {
@@ -38,7 +38,7 @@ class _PlayerAddPageState extends State<PlayerAddPage> {
     playerCounter =
         Provider.of<RoomDataProvider>(context, listen: false).playerCounter;
     results = Provider.of<RoomDataProvider>(context, listen: false).players;
-    player = Players('', 0, 0, 0, 0, 0, 0, 0);
+    player = ScoreEntry('', 0, 0, 0, 0, 0, 0, 0);
   }
 
   @override
@@ -81,7 +81,7 @@ class _PlayerAddPageState extends State<PlayerAddPage> {
       buildings: player.buildings,
       coins: player.coins,
     ));
-    results.add(Players(
+    results.add(ScoreEntry(
         player.name,
         player.popularity,
         player.stars,

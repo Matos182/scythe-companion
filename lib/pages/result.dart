@@ -24,7 +24,7 @@ class _ResultPageState extends State<ResultPage> {
   Widget build(BuildContext context) {
     _roomDataProvider = Provider.of<RoomDataProvider>(context, listen: false);
     // Filter out empty or repeated named players
-    List<Players> results = _roomDataProvider.players
+    List<ScoreEntry> results = _roomDataProvider.players
         .where((player) => player.name.isNotEmpty)
         .toSet()
         .toList();

@@ -25,14 +25,13 @@ class _TurnPageState extends State<TurnPage> {
 
   @override
   Widget build(BuildContext context) {
-    RoomDataProvider room = Provider.of<RoomDataProvider>(context);
+    RoomDataProvider provider = Provider.of<RoomDataProvider>(context);
+    final room = provider.room;
 
     return ElevatedButton(
-        onPressed: room.roomData['turn']['socketID'] ==
-                _socketMethods.socketClient.id
+        onPressed: room.turn.socketID == _socketMethods.socketClient.id
             ? () {
-                _socketMethods.passTurn(room
-                    .roomData['_id']); //pass the turn, increment turn number
+                _socketMethods.passTurn(room.id);
               }
             : null,
         style: ButtonStyle(

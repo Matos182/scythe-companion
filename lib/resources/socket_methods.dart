@@ -62,16 +62,14 @@ class SocketMethods {
   //LISTENERS
   void createRoomSuccessListener(BuildContext context) {
     _socketClient.on('createRoomSuccess', (room) {
-      Provider.of<RoomDataProvider>(context, listen: false)
-          .updateRoomData(room);
+      Provider.of<RoomDataProvider>(context, listen: false).updateRoom(room);
       context.goNamed(RouteNames.game);
     });
   }
 
   void joinRoomSuccessListener(BuildContext context) {
     _socketClient.on('joinRoomSuccess', (room) {
-      Provider.of<RoomDataProvider>(context, listen: false)
-          .updateRoomData(room);
+      Provider.of<RoomDataProvider>(context, listen: false).updateRoom(room);
       context.goNamed(RouteNames.game);
     });
   }
@@ -84,18 +82,16 @@ class SocketMethods {
 
   void updateRoomListener(BuildContext context) {
     _socketClient.on('updateRoom', (data) {
-      Provider.of<RoomDataProvider>(context, listen: false)
-          .updateRoomData(data);
+      Provider.of<RoomDataProvider>(context, listen: false).updateRoom(data);
     });
   }
 
   void turnListener(BuildContext context) {
     _socketClient.on('newTurn', (data) {
-      Provider.of<RoomDataProvider>(context, listen: false)
-          .updateRoomData(data);
-      RoomDataProvider room =
+      Provider.of<RoomDataProvider>(context, listen: false).updateRoom(data);
+      RoomDataProvider provider =
           Provider.of<RoomDataProvider>(context, listen: false);
-      if (_socketClient.id == room.roomData['turn']['_id']) {
+      if (_socketClient.id == provider.room.turn.id) {
         // TODO[T3.4]: fire flutter_local_notifications "your turn" alert
       }
     });

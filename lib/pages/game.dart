@@ -47,9 +47,10 @@ class _GamePageState extends State<GamePage> {
 
   @override
   Widget build(BuildContext context) {
-    RoomDataProvider room = Provider.of<RoomDataProvider>(context);
-    _turnIndex = room.roomData['turnIndex'];
-    _turnTimer = room.roomData['players'][_turnIndex]['timer'];
+    RoomDataProvider provider = Provider.of<RoomDataProvider>(context);
+    final room = provider.room;
+    _turnIndex = room.turnIndex;
+    _turnTimer = room.players.isNotEmpty ? room.players[_turnIndex].timer : 0;
 
     return Scaffold(
         backgroundColor: bgColor,
@@ -61,9 +62,8 @@ class _GamePageState extends State<GamePage> {
             ),
             centerTitle: true,
             actions: [
-              (room.roomData['isPaused'] &&
-                      room.roomData['turn']['socketID'] ==
-                          _socketMethods.socketClient.id)
+              (room.isPaused &&
+                      room.turn.socketID == _socketMethods.socketClient.id)
                   ? IconButton(
                       icon: const Icon(
                         Icons.play_arrow,
@@ -71,11 +71,9 @@ class _GamePageState extends State<GamePage> {
                         size: 30,
                       ),
                       onPressed: () {
-                        _socketMethods.toContinue(
-                            room.roomData['_id'], _turnIndex);
+                        _socketMethods.toContinue(room.id, _turnIndex);
                       })
-                  : room.roomData['turn']['socketID'] ==
-                          _socketMethods.socketClient.id
+                  : room.turn.socketID == _socketMethods.socketClient.id
                       ? IconButton(
                           icon: const Icon(
                             Icons.pause,
@@ -83,7 +81,7 @@ class _GamePageState extends State<GamePage> {
                             size: 30,
                           ),
                           onPressed: () {
-                            _socketMethods.pause(room.roomData['_id']);
+                            _socketMethods.pause(room.id);
                           })
                       : const IconButton(
                           icon: Icon(
@@ -93,7 +91,7 @@ class _GamePageState extends State<GamePage> {
                           ),
                           onPressed: null)
             ]),
-        body: room.roomData['isJoin']
+        body: room.isJoin
             ? const LobbyPage()
             : Center(
                 child: Column(
@@ -103,7 +101,7 @@ class _GamePageState extends State<GamePage> {
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 50),
                       child: FittedBox(
                           child: Text(
-                        '${room.roomData['turn']['nickname']}\'s Turn  -  Round: ${room.roomData['totalTurns']}',
+                        '${room.turn.nickname}\'s Turn  -  Round: ${room.totalTurns}',
                         style: const TextStyle(
                           fontSize: 30,
                           fontWeight: FontWeight.bold,
@@ -131,7 +129,7 @@ class _GamePageState extends State<GamePage> {
                           color: bgColorBar,
                         ),
                       )),
-                  room.roomData['isPaused']
+                  room.isPaused
                       ? const ElevatedButton(
                           onPressed: null,
                           style: ButtonStyle(
@@ -172,13 +170,12 @@ class _GamePageState extends State<GamePage> {
                                   'Timer',
                                 ))),
                       ],
-                      rows: room.roomData['players']
-                          .map<DataRow>((dynamic player) {
+                      rows: room.players.map<DataRow>((player) {
                         return DataRow(
                           cells: [
-                            DataCell(Text(player['nickname'],
+                            DataCell(Text(player.nickname,
                                 textAlign: TextAlign.center)),
-                            DataCell(Text(_printFormatedTime(player['timer']),
+                            DataCell(Text(_printFormatedTime(player.timer),
                                 textAlign: TextAlign.center)),
                           ],
                         );
