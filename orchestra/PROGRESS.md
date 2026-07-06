@@ -5,22 +5,14 @@ awaiting Matos review · ✅ done (gates green, Matos reviewed) · 🟥 blocked.
 Every chat updates this file before ending
 (protocol §4). "Next up" is the single source of truth for what happens next.
 
-**Next up:** Matos already reviewed to 2.5. Now time to T3.1. Just review that Matos did it: nine tasks are 🟦 and 19
-commits sit stacked on `task/T2.5-docke-deploy` while `master` has only
-README edits. Before Phase 3 opens, Matos reviews the stack and merges
-T0.1→T2.5 into master (each branch builds on the previous — one linear
-review). Phase 3 then branches off a reviewed master instead of a 15-deep
-branch stack. If Matos prefers to keep momentum, T3.1 may branch off
-`task/T2.5-docker-deploy` as planned — the checkpoint is a strong
-recommendation, not a blocker. CEO audit 2026-07-05 re-verified all gates
-green and corrected the board (see HANDOFF AUDIT below).
-
-Then: T3.1 — SocketService & state layer (IMP, large). Replace
-`SocketClient`/`SocketMethods` with `data/socket_service.dart`
-(connection-state stream, auto-reconnect+backoff, handlers registered once,
-protocolVersion check) + `GameRepository` + room/game `ChangeNotifier`s per
-D3. All navigation-from-socket moved to one guarded listener. Done when:
-GATE-F; unit tests with a fake socket cover connect→join→turn→drop→rejoin.
+**Next up:** T3.2 — Runtime server config + QR (IMP, medium). Branch off
+`task/T3.1-socket-service`. Delete `lib/env/` for real (nothing imports it
+anymore — T3.1 already cleared the A11 analyze errors), settings screen for
+server URL persisted in shared_preferences (replacing the compile-time
+dart-define default in `lib/data/server_config.dart`), QR display on create
++ QR scan on join so friends don't type URLs. See T3.1 hand-off for the
+seam: `ServerConfig.serverUrl` is read once at startup in main.dart — T3.2
+makes it a runtime value injected into IoSocketAdapter.
 
 ## Phase 0 — Foundation
 | Task | Title | Role | Status |
@@ -51,7 +43,7 @@ GATE-F; unit tests with a fake socket cover connect→join→turn→drop→rejoi
 ## Phase 3 — Client multiplayer rebuild
 | Task | Title | Role | Status |
 |---|---|---|---|
-| T3.1 | SocketService & state layer | IMP | ⬜ |
+| T3.1 | SocketService & state layer | IMP | 🟦 |
 | T3.2 | Runtime server config + QR | IMP | ⬜ |
 | T3.3 | Game screen rebuild | IMP | ⬜ |
 | T3.4 | Notifications done right | IMP | ⬜ |
@@ -70,6 +62,14 @@ GATE-F; unit tests with a fake socket cover connect→join→turn→drop→rejoi
   · S5 expansion content (mind C5) · S6 iOS
 
 ## Hand-off notes (append-only, newest first)
+
+```
+HANDOFF T3.1 (🟦 DONE — pending Matos review) | 2026-07-06 | model: claude-fable-5 (CEO/IMP) | branch: task/T3.1-socket-service (off reviewed master)
+Did: rebuilt the client socket/state layer per 02_ARCHITECTURE "Connection lifecycle" (fixes A10, clears A11 analyze errors). lib/data/ (new): socket_adapter.dart — SocketAdapter interface + IoSocketAdapter over socket_io_client 3.x (reconnect+exponential backoff delegated to socket.io: reconnectionDelay 1s→10s w/ jitter); socket_service.dart — owns ALL handlers (registered once at service level, never in widgets), typed broadcast streams (connectionStates/roomJoined/roomUpdates/ticks/errors), SocketConnectionState enum (disconnected/connecting/connected/reconnecting/protocolMismatch), protocolVersion check via /healthz probe BEFORE first connect (D5 — mismatch hard-blocks with PROTOCOL_MISMATCH error; unreachable server falls through so socket surfaces its own error), T2.4 {code,message} error envelope parsed with legacy-string fallback, room payload parse failures surface CLIENT_BAD_PAYLOAD instead of crashing; game_repository.dart — identifies "me" by matching MY socket id against players[].socketID then remembering the playerId UUID (D4), persists {roomCode,playerId} via SessionStore, AUTO-REJOINS on reconnect (emits rejoinRoom), rejoinSavedSession() for app-restart resume, leaveSession() clears everything; session_store.dart — SharedPrefsSessionStore + InMemorySessionStore for tests; server_config.dart — compile-time --dart-define=SCYTHE_SERVER_URL (default localhost:3000), replaces the gitignored lib/env/env.dart import (repo now compiles after clone). RoomNotifier (new, D3): typed room state, isMyTurn/isCreator BY PLAYERID (old code compared socket.id to player._id — never matched), folds 1s server ticks into players[].remainingSec via copyWith, justJoined one-shot flag + lastError. main.dart: composition root builds service/repo once; THE single guarded navigation listener (checks mounted, skips nav when already on /game so rejoin doesn't double-navigate, snackbars via scaffoldMessengerKey). RoomDataProvider slimmed to offline-calculator only; router refreshListenable removed (was a orphan RoomDataProvider instance). Pages (create/join/game/turn/waiting_lobby) rewritten onto context.watch<RoomNotifier> — zero socket references in widgets; game page shows remainingSec (was timer), (offline) suffix on disconnected players, reconnecting banner. Deleted lib/resources/socket_client.dart + socket_methods.dart. Player model: +remainingSec +connected +copyWith; Room: +copyWith. deps: +shared_preferences 2.5.4.
+Gates: GATE-F GREEN and then some — dart format 0 changes; flutter analyze 0 ISSUES (the 2 baseline A11 errors died: nothing imports lib/env/ anymore, though lib/env/env.dart still exists gitignored on disk — T3.2 deletes the folder); flutter test 77/77 pass (was 56 pass + 1 fail): 20 new fake-socket tests covering the FULL required lifecycle — connect→join(identify me→persist session)→turn/pause/resume→drop→auto-rejoin with new socket id→re-identify, plus protocol mismatch blocks connect, malformed payload doesn't crash, handlers registered exactly once (A10 regression guard), leaveSession suppresses auto-rejoin; widget_test.dart rewritten from the dead counter template (A15 debt gone) to a boot smoke test with a fake socket.
+Surprises/debt: (1) protocolVersion isn't in the socket.io handshake server-side yet — it's only in /healthz, so the client probes /healthz over HTTP before connecting. Works, but a handshake-level check (server middleware rejecting mismatched clients) would be stronger — T2.x follow-up candidate, needs a server change. (2) connect_error from rate limiting (T2.4 note) maps to `reconnecting` state — no dedicated "rate limited" UI state; T3.5 can surface it. (3) The lobby room-code TextField syncs controller text inside build() — pragmatic, not pretty; T3.3 (game screen rebuild) can replace it with a SelectableText. (4) game.dart still renders the turn timer from players[turnIndex].remainingSec — correct with ticks folded in, but T3.3 should render from a dedicated selector to avoid whole-page rebuilds every second. (5) rejoinSavedSession() exists but nothing calls it on app start yet (needs UX decision: auto-resume vs "Resume game?" prompt) — T3.3/T3.5. (6) macos GeneratedPluginRegistrant.swift churned by pub get after adding shared_preferences — same auto-regen precedent as T0.4, committed. (7) Worked in a git worktree (~/dev/scythe-t31) because the main checkout (~/dev/scythe-companion) was left on task/T4.1-ci by the parallel CI chat — worktrees let both proceed; safe to `git worktree remove ~/dev/scythe-t31` after merge.
+Next chat needs: T3.2 Runtime server config + QR (IMP, medium). Branch off task/T3.1-socket-service. Delete lib/env/ (nothing imports it). Server URL: settings screen + shared_preferences (ServerConfig currently compile-time; make it runtime — IoSocketAdapter takes the URL in its constructor, so the seam is ready, but note the service/adapter are built once in main() — T3.2 needs a "reconnect with new URL" path, e.g. rebuild the adapter or make SocketService accept a URL change). QR: display room code + server URL QR in lobby, scan on join screen (mobile_scanner or qr_flutter + camera dep — check pub.dev current APIs, don't guess). Done when: GATE-F; friend joins by scanning, zero typing.
+```
 
 ```
 HANDOFF AUDIT-CEO (✅ docs-only) | 2026-07-05 | model: claude-fable-5 (CON/REV) | branch: task/T2.5-docker-deploy
