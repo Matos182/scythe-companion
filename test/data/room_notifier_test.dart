@@ -3,6 +3,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:scythe_companion/data/game_repository.dart';
 import 'package:scythe_companion/data/session_store.dart';
+import 'package:scythe_companion/data/settings_repository.dart';
 import 'package:scythe_companion/data/socket_service.dart';
 import 'package:scythe_companion/provider/room_notifier.dart';
 
@@ -19,6 +20,7 @@ void main() {
     repository = GameRepository(
       socketService: SocketService(adapter: fake),
       sessionStore: InMemorySessionStore(),
+      settingsRepository: InMemorySettingsRepository(),
     );
     notifier = RoomNotifier(repository);
   });

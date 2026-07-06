@@ -2,8 +2,11 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import '../data/game_repository.dart';
 import '../provider/room_notifier.dart';
 import '../utils/colors.dart';
+import '../utils/qr_payload.dart';
 
 class LobbyPage extends StatefulWidget {
   const LobbyPage({super.key});
@@ -29,10 +32,40 @@ class _LobbyPageState extends State<LobbyPage> {
     roomIdController.dispose();
   }
 
+  /// QR block shown once the room exists and a server URL is bound.
+  List<Widget> _buildQrSection(String serverUrl, String roomCode) {
+    final payload = encodeJoin(JoinPayload(
+      server: serverUrl,
+      roomCode: roomCode,
+    ));
+    return [
+      const SizedBox(height: 16),
+      Container(
+        padding: const EdgeInsets.all(8),
+        color: Colors.white,
+        child: QrImageView(
+          key: ValueKey('qr:$payload'),
+          data: payload,
+          version: QrVersions.auto,
+          size: 180,
+          backgroundColor: Colors.white,
+        ),
+      ),
+      const SizedBox(height: 8),
+      const Text(
+        'Scan to join',
+        style: TextStyle(
+            color: bgColorBar, fontStyle: FontStyle.italic, fontSize: 12),
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final notifier = context.watch<RoomNotifier>();
     final room = notifier.room;
+    final repository = context.read<GameRepository>();
+    final serverUrl = repository.currentServerUrl;
     // Keep the read-only field in sync when the room arrives after
     // initState (e.g. slow create round-trip).
     if (roomIdController.text != room.id) {
@@ -65,6 +98,13 @@ class _LobbyPageState extends State<LobbyPage> {
                 fillColor: bgColorBar,
                 filled: true,
               ))),
+      // T3.2: QR code below the room id so friends can scan and join
+      // with zero typing. Server URL goes in the payload so the scan
+      // re-points the joiner at *this* server, not at whatever they
+      // had configured. The ValueKey carries the encoded payload —
+      // qr_flutter keeps `data` private, so tests assert on the key.
+      if (room.id.isNotEmpty && serverUrl != null)
+        ..._buildQrSection(serverUrl, room.id),
       DataTable(
         dataRowMaxHeight: 35,
         dataRowMinHeight: 20,

@@ -3,6 +3,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:scythe_companion/data/game_repository.dart';
 import 'package:scythe_companion/data/session_store.dart';
+import 'package:scythe_companion/data/settings_repository.dart';
 import 'package:scythe_companion/data/socket_service.dart';
 import 'package:scythe_companion/domain/models/room.dart';
 
@@ -54,13 +55,19 @@ void main() {
   late FakeSocketAdapter fake;
   late SocketService service;
   late InMemorySessionStore sessions;
+  late InMemorySettingsRepository settings;
   late GameRepository repository;
 
   setUp(() {
     fake = FakeSocketAdapter();
     service = SocketService(adapter: fake); // no probe: skip version check
     sessions = InMemorySessionStore();
-    repository = GameRepository(socketService: service, sessionStore: sessions);
+    settings = InMemorySettingsRepository();
+    repository = GameRepository(
+      socketService: service,
+      sessionStore: sessions,
+      settingsRepository: settings,
+    );
   });
 
   tearDown(() {

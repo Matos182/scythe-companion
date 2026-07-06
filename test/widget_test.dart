@@ -1,29 +1,78 @@
 // SPDX-License-Identifier: MIT
 
-// Smoke test: the app boots with a fake socket and shows the home menu.
+// Smoke test: the app boots with a fake socket and shows the home menu,
+// and every route reachable from home renders without throwing.
 // Replaces the counter-template test (audit A15) that could never pass.
+//
+// The navigation sweep exists because a page that reads a missing
+// Provider (e.g. `context.read<GameRepository>()` before it was added to
+// main.dart's MultiProvider) only crashes when the page is BUILT — a
+// boot-only test cannot catch it (this exact bug shipped in the T3.2
+// draft and was caught in review, not by tests).
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:scythe_companion/data/game_repository.dart';
 import 'package:scythe_companion/data/session_store.dart';
+import 'package:scythe_companion/data/settings_repository.dart';
 import 'package:scythe_companion/data/socket_service.dart';
 import 'package:scythe_companion/main.dart';
 
 import 'data/fake_socket_adapter.dart';
 
 void main() {
-  testWidgets('App boots to the home menu', (WidgetTester tester) async {
-    final repository = GameRepository(
-      socketService: SocketService(adapter: FakeSocketAdapter()),
-      sessionStore: InMemorySessionStore(),
-    );
+  GameRepository buildRepository() => GameRepository(
+        socketService: SocketService(adapter: FakeSocketAdapter()),
+        sessionStore: InMemorySessionStore(),
+        settingsRepository: InMemorySettingsRepository(),
+        initialServerUrl: 'http://test-server:3000',
+      );
 
-    await tester.pumpWidget(MyApp(repository: repository));
+  testWidgets('App boots to the home menu', (WidgetTester tester) async {
+    await tester.pumpWidget(MyApp(repository: buildRepository()));
 
     expect(find.text('Scythe Companion'), findsOneWidget);
     expect(find.text('Create Room'), findsOneWidget);
     expect(find.text('Join Room'), findsOneWidget);
     expect(find.text('Simple Convert'), findsOneWidget);
     expect(find.text('Game Results'), findsOneWidget);
+  });
+
+  testWidgets('Every home-menu route builds without throwing',
+      (WidgetTester tester) async {
+    // (button label, marker text expected on the destination page)
+    const routes = [
+      ('Simple Convert', 'Popularity'),
+      ('Create Room', 'Create Room'),
+      ('Join Room', 'Join Room'),
+    ];
+
+    for (final (button, marker) in routes) {
+      // Fresh app per route: home.dart navigates with goNamed (replace,
+      // not push), so there is no back stack to pop. The unique key
+      // forces a NEW _MyAppState (and a new router) — pumping the same
+      // widget type reuses the old State, which would still be sitting
+      // on the previous route.
+      await tester.pumpWidget(MyApp(
+        key: UniqueKey(),
+        repository: buildRepository(),
+      ));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(button).first);
+      await tester.pumpAndSettle();
+      expect(find.text(marker), findsWidgets,
+          reason: 'route "$button" should render a page showing "$marker"');
+    }
+  });
+
+  testWidgets('Settings opens from the home AppBar gear (T3.2)',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(MyApp(repository: buildRepository()));
+
+    await tester.tap(find.byTooltip('Server & nickname'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Settings'), findsOneWidget);
+    expect(find.text('Server URL'), findsOneWidget);
   });
 }
