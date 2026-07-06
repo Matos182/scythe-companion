@@ -81,6 +81,12 @@ void main() {
 
     // Sanity: the on-screen room code field carries the same code.
     expect(find.text('XY7ZQR'), findsWidgets);
+    // T3.5: the room code is now rendered via SelectableText so a friend
+    // can long-press to copy it (T3.1 debt 3). Keyed for testability.
+    expect(
+      find.byKey(const ValueKey('lobby-room-code')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('LobbyPage omits the QR when no server URL is bound',

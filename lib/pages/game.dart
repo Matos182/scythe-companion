@@ -5,9 +5,11 @@ import 'package:provider/provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import '../data/socket_service.dart';
 import '../provider/room_notifier.dart';
+import '../utils/colors.dart';
+import '../utils/strings.dart';
+import '../widgets/confirm_dialog.dart';
 import '../widgets/turn.dart';
 import '../widgets/waiting_lobby.dart';
-import '../utils/colors.dart';
 
 /// Multiplayer game screen (T3.3).
 ///
@@ -77,12 +79,16 @@ class _GamePageState extends State<GamePage> {
       appBar: AppBar(
         backgroundColor: bgColorBar,
         title: const Text(
-          'Scythe Game',
+          GameStrings.title,
           style: TextStyle(color: buttonTextColor),
         ),
         centerTitle: true,
         actions: [
-          _PauseResumeAction(isMyTurn: isMyTurn, isPaused: room.isPaused)
+          _PauseResumeAction(isMyTurn: isMyTurn, isPaused: room.isPaused),
+          // T3.5: leave button (T3.5 confirm-leave dialog). Sits
+          // next to the pause/resume action so a mid-turn exit is
+          // explicit, not accidental.
+          _LeaveAction(isInGame: !room.isJoin),
         ],
       ),
       body: Column(
@@ -103,8 +109,8 @@ class _GamePageState extends State<GamePage> {
 
 /// Orange strip telling the user the socket is unhappy. D5/triage:
 /// keep this opinionated — a friend re-joining mid-turn needs the
-/// affordance. The exact copy is fixed (no "Rate-limited" carve-out
-/// yet — that's T3.5 territory per the T2.4 hand-off).
+/// affordance. Copy now lives in [ConnectionStrings] (T3.5) so it
+/// shares a vocabulary with the rest of the app.
 class _ReconnectBanner extends StatelessWidget {
   const _ReconnectBanner(this.connectionState);
 
@@ -112,9 +118,13 @@ class _ReconnectBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = connectionState == SocketConnectionState.reconnecting
-        ? 'Connection lost — reconnecting…'
-        : 'Disconnected from server';
+    final label = switch (connectionState) {
+      SocketConnectionState.reconnecting => ConnectionStrings.reconnecting,
+      SocketConnectionState.disconnected => ConnectionStrings.disconnected,
+      SocketConnectionState.protocolMismatch =>
+        ConnectionStrings.protocolMismatch,
+      _ => ConnectionStrings.disconnected,
+    };
     return Container(
       width: double.infinity,
       color: Colors.orange.shade800,
@@ -281,8 +291,9 @@ class _PlayersTable extends StatelessWidget {
         ),
       ],
       rows: players.map<DataRow>((player) {
-        final displayName =
-            player.connected ? player.nickname : '${player.nickname} (offline)';
+        final displayName = player.connected
+            ? player.nickname
+            : '${player.nickname} ${GameStrings.offlineSuffix}';
         return DataRow(
           cells: [
             DataCell(Text(displayName, textAlign: TextAlign.center)),
@@ -291,6 +302,43 @@ class _PlayersTable extends StatelessWidget {
           ],
         );
       }).toList(),
+    );
+  }
+}
+
+/// T3.5: explicit "leave" action in the AppBar. Distinct from the
+/// pause/resume icon so the cost is visible. Confirms with the user
+/// before tearing down their seat (in-game) or quitting the lobby
+/// (pre-game). Lobby uses a softer message because no game state
+/// exists yet.
+class _LeaveAction extends StatelessWidget {
+  const _LeaveAction({required this.isInGame});
+
+  final bool isInGame;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      key: const ValueKey('leave-action'),
+      icon: const Icon(Icons.exit_to_app, color: buttonTextColor, size: 26),
+      tooltip: LeaveDialogStrings.confirmLabel,
+      onPressed: () async {
+        final confirmed = await confirmLeave(
+          context,
+          title: isInGame
+              ? LeaveDialogStrings.gameTitle
+              : LeaveDialogStrings.lobbyTitle,
+          message: isInGame
+              ? LeaveDialogStrings.gameMessage
+              : LeaveDialogStrings.lobbyMessage,
+        );
+        if (!confirmed || !context.mounted) return;
+        // context.read is safe post-confirmation; the navigation guard
+        // in main.dart ensures no double-fire, and the navigator key
+        // isn't required here (we pop explicitly).
+        await context.read<RoomNotifier>().leaveSession();
+        if (context.mounted) Navigator.of(context).pop();
+      },
     );
   }
 }
