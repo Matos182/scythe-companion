@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../utils/qr_payload.dart';
+import '../utils/strings.dart';
 
 /// Modal full-screen QR scanner (T3.2). Returns a [JoinPayload] when
 /// the user scans something valid, or null on cancel/no-read.
@@ -51,7 +52,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
-        title: const Text('Scan Room QR'),
+        title: const Text(QrScannerStrings.title),
         actions: [
           IconButton(
             icon: const Icon(Icons.close),
@@ -114,8 +115,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
     // users know where to fix it.
     final code = error.errorCode;
     if (code == MobileScannerErrorCode.permissionDenied) {
-      return 'Camera permission was denied. Grant it in Android '
-          'Settings to scan a QR code.';
+      return QrScannerStrings.cameraDenied;
     }
     return code.message;
   }

@@ -4,6 +4,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import './data/error_messages.dart';
 import './data/game_repository.dart';
 import './data/notifications.dart';
 import './data/server_config.dart';
@@ -159,8 +160,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final error = _roomNotifier.lastError;
     if (error != null) {
       _roomNotifier.clearError();
+      // T3.5: route the structured envelope through humanizeError so
+      // the user sees e.g. "Room not found" instead of the server's
+      // developer-flavoured `STATE_ROOM_NOT_FOUND: room not found`.
       _messengerKey.currentState?.showSnackBar(
-        SnackBar(content: Text(error.message)),
+        SnackBar(content: Text(humanizeError(error))),
       );
     }
   }

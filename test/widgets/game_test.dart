@@ -264,6 +264,83 @@ void main() {
     });
   });
 
+  group('GamePage — leave action (T3.5 confirm-leave)', () {
+    testWidgets('shows the leave icon in the AppBar', (tester) async {
+      final fake = FakeSocketAdapter();
+      final built = _build(fake);
+      addTearDown(built.repository.dispose);
+      addTearDown(built.notifier.dispose);
+
+      await built.repository.createRoom(
+          nickname: 'Alice', faction: 'Crimea', mat: '1', timerSec: 900);
+      _seatAlice(fake);
+
+      await tester.pumpWidget(_gameUnderTest(built.repository, built.notifier));
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byKey(const ValueKey('leave-action')), findsOneWidget);
+      expect(find.byIcon(Icons.exit_to_app), findsOneWidget);
+    });
+
+    testWidgets('tapping leave shows the confirm dialog and cancels cleanly',
+        (tester) async {
+      final fake = FakeSocketAdapter();
+      final built = _build(fake);
+      addTearDown(built.repository.dispose);
+      addTearDown(built.notifier.dispose);
+
+      await built.repository.createRoom(
+          nickname: 'Alice', faction: 'Crimea', mat: '1', timerSec: 900);
+      _seatAlice(fake);
+      final sentBefore = fake.sentEvents.length;
+      await tester.pumpWidget(_gameUnderTest(built.repository, built.notifier));
+      await tester.pump();
+      await tester.pump();
+
+      // Tap the leave action — dialog appears.
+      await tester.tap(find.byKey(const ValueKey('leave-action')));
+      await tester.pumpAndSettle();
+
+      // Game (in-game, not lobby) shows the in-game dialog copy.
+      expect(find.text('Leave the game?'), findsOneWidget);
+
+      // Cancel — dialog dismisses, leaveSession NOT called.
+      await tester.tap(find.text('Stay'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Leave the game?'), findsNothing);
+      // Cancel must not have produced any new socket emit (the only
+      // emits at this point come from _seatAlice's createRound).
+      expect(fake.sentEvents.length, sentBefore);
+    });
+
+    testWidgets('confirming leave calls leaveSession on the notifier',
+        (tester) async {
+      final fake = FakeSocketAdapter();
+      final built = _build(fake);
+      addTearDown(built.repository.dispose);
+      addTearDown(built.notifier.dispose);
+
+      await built.repository.createRoom(
+          nickname: 'Alice', faction: 'Crimea', mat: '1', timerSec: 900);
+      _seatAlice(fake);
+      await tester.pumpWidget(_gameUnderTest(built.repository, built.notifier));
+      await tester.pump();
+      await tester.pump();
+
+      await tester.tap(find.byKey(const ValueKey('leave-action')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Leave'));
+      await tester.pumpAndSettle();
+
+      // After leaveSession the notifier room is the empty default —
+      // the page rebuilds and the page-level room.id is empty.
+      expect(built.notifier.room.id, isEmpty);
+    });
+  });
+
   group('GamePage — connection banners', () {
     testWidgets('shows "reconnecting" copy while the socket retries',
         (tester) async {

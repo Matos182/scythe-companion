@@ -7,6 +7,7 @@ import '../data/game_repository.dart';
 import '../provider/room_notifier.dart';
 import '../utils/colors.dart';
 import '../utils/qr_payload.dart';
+import '../utils/strings.dart';
 
 class LobbyPage extends StatefulWidget {
   const LobbyPage({super.key});
@@ -16,23 +17,10 @@ class LobbyPage extends StatefulWidget {
 }
 
 class _LobbyPageState extends State<LobbyPage> {
-  late TextEditingController roomIdController;
-
-  @override
-  void initState() {
-    super.initState();
-    roomIdController = TextEditingController(
-      text: context.read<RoomNotifier>().room.id,
-    );
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    roomIdController.dispose();
-  }
-
   /// QR block shown once the room exists and a server URL is bound.
+  /// Inlined here (T3.5) so the room-code SelectableText and the QR
+  /// live next to each other — they're the same affordance ("share
+  /// this room with a friend").
   List<Widget> _buildQrSection(String serverUrl, String roomCode) {
     final payload = encodeJoin(JoinPayload(
       server: serverUrl,
@@ -66,11 +54,7 @@ class _LobbyPageState extends State<LobbyPage> {
     final room = notifier.room;
     final repository = context.read<GameRepository>();
     final serverUrl = repository.currentServerUrl;
-    // Keep the read-only field in sync when the room arrives after
-    // initState (e.g. slow create round-trip).
-    if (roomIdController.text != room.id) {
-      roomIdController.text = room.id;
-    }
+    final roomCode = room.id;
 
     return Column(mainAxisAlignment: MainAxisAlignment.center, children: [
       const Text(
@@ -79,32 +63,60 @@ class _LobbyPageState extends State<LobbyPage> {
             fontWeight: FontWeight.bold, color: bgColorBar, fontSize: 20),
       ),
       const SizedBox(height: 50),
+      // T3.5: replaced the read-only TextField + controller-sync-in-build
+      // pattern (T3.1 debt 3) with a SelectableText — the room code
+      // isn't editable, just copyable. Removes the implicit setState()
+      // that was running on every parent rebuild (T3.3 hand-off
+      // flagged this as a build-time side-effect).
       Container(
-          decoration: const BoxDecoration(
-            boxShadow: [
-              BoxShadow(
-                color: bgColorBar,
-                blurRadius: 5,
-                spreadRadius: 2,
-              )
-            ],
+        decoration: const BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: bgColorBar,
+              blurRadius: 5,
+              spreadRadius: 2,
+            )
+          ],
+        ),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          color: bgColorBar,
+          child: SelectableText(
+            roomCode.isEmpty ? '—' : roomCode,
+            key: const ValueKey('lobby-room-code'),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: buttonTextColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+              letterSpacing: 4,
+            ),
           ),
-          child: TextField(
-              readOnly: true,
-              controller: roomIdController,
-              textAlign: TextAlign.center,
-              decoration: const InputDecoration(
-                hintStyle: TextStyle(color: buttonTextColor),
-                fillColor: bgColorBar,
-                filled: true,
-              ))),
+        ),
+      ),
       // T3.2: QR code below the room id so friends can scan and join
       // with zero typing. Server URL goes in the payload so the scan
       // re-points the joiner at *this* server, not at whatever they
       // had configured. The ValueKey carries the encoded payload —
       // qr_flutter keeps `data` private, so tests assert on the key.
-      if (room.id.isNotEmpty && serverUrl != null)
-        ..._buildQrSection(serverUrl, room.id),
+      if (roomCode.isNotEmpty && serverUrl != null)
+        ..._buildQrSection(serverUrl, roomCode),
+      // T3.5: empty state when no players are seated yet — rare in
+      // practice (the creator is always present at first) but the
+      // type permits it (e.g. joinRoom failure left the lobby in a
+      // half-initialised state).
+      if (room.players.isEmpty)
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 24),
+          child: Text(
+            EmptyStateStrings.noPlayers,
+            style: TextStyle(
+              fontStyle: FontStyle.italic,
+              color: bgColorBar,
+            ),
+          ),
+        ),
       DataTable(
         dataRowMaxHeight: 35,
         dataRowMinHeight: 20,
