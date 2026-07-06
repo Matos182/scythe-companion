@@ -5,8 +5,8 @@ awaiting Matos review · ✅ done (gates green, Matos reviewed) · 🟥 blocked.
 Every chat updates this file before ending
 (protocol §4). "Next up" is the single source of truth for what happens next.
 
-**Next up:** REVIEW CHECKPOINT (Matos) → then T3.1. Nine tasks are 🟦 and 19
-commits sit stacked on `task/T2.5-docker-deploy` while `master` has only
+**Next up:** Matos already reviewed to 2.5. Now time to T3.1. Just review that Matos did it: nine tasks are 🟦 and 19
+commits sit stacked on `task/T2.5-docke-deploy` while `master` has only
 README edits. Before Phase 3 opens, Matos reviews the stack and merges
 T0.1→T2.5 into master (each branch builds on the previous — one linear
 review). Phase 3 then branches off a reviewed master instead of a 15-deep
@@ -33,20 +33,20 @@ GATE-F; unit tests with a fake socket cover connect→join→turn→drop→rejoi
 ## Phase 1 — Domain core
 | Task | Title | Role | Status |
 |---|---|---|---|
-| T1.1 | ScoreCalculator extraction | IMP | 🟦 |
-| T1.2 | Typed models | IMP | 🟦 |
-| T1.3 | Scoring UIs consolidated | IMP | 🟦 |
-| T1.4 | Lint & language pass | IMP | 🟦 |
+| T1.1 | ScoreCalculator extraction | IMP | ✅ |
+| T1.2 | Typed models | IMP | ✅ |
+| T1.3 | Scoring UIs consolidated | IMP | ✅ |
+| T1.4 | Lint & language pass | IMP | ✅ |
 
 ## Phase 2 — Server rebuild
 | Task | Title | Role | Status |
 |---|---|---|---|
-| T2.0 | Server scaffolding | IMP | 🟦 |
-| T2.1 | RoomStore + protocol v1 | IMP | 🟦 |
-| T2.2 | Timer engine | IMP | 🟦 |
-| T2.3 | Presence & rejoin | IMP | 🟦 |
-| T2.4 | Hardening | IMP | 🟦 |
-| T2.5 | Docker & deploy runbook | IMP | 🟦 |
+| T2.0 | Server scaffolding | IMP | ✅ |
+| T2.1 | RoomStore + protocol v1 | IMP | ✅ |
+| T2.2 | Timer engine | IMP | ✅ |
+| T2.3 | Presence & rejoin | IMP | ✅ |
+| T2.4 | Hardening | IMP | ✅ |
+| T2.5 | Docker & deploy runbook | IMP | ✅ |
 
 ## Phase 3 — Client multiplayer rebuild
 | Task | Title | Role | Status |
