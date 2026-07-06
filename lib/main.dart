@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import './data/game_repository.dart';
@@ -59,6 +61,14 @@ class _MyAppState extends State<MyApp> {
   final _messengerKey = GlobalKey<ScaffoldMessengerState>();
   late final RoomNotifier _roomNotifier;
 
+  /// One-shot context for the boot-time `rejoinSavedSession` (T3.3
+  /// hand-off debt 5b). The repository silently attempts to resume a
+  /// stored session; if it succeeds, we show "Rejoined room XYZ" instead
+  /// of leaving the user to figure out why they're suddenly in an old
+  /// game. Cleared the moment the joined-flag fires so a subsequent
+  /// fresh join is unaffected.
+  String? _pendingRejoinRoomCode;
+
   @override
   void initState() {
     super.initState();
@@ -67,6 +77,25 @@ class _MyAppState extends State<MyApp> {
     // and error snackbars happen here — never inside socket callbacks
     // with a captured page context.
     _roomNotifier.addListener(_onRoomEvent);
+    // T3.3: silent auto-resume of a saved session. If the user has no
+    // session, this is a no-op. If rejoinRoom gets rejected by the
+    // server (stale playerId, dead room), the server emits errorOccurred
+    // which surfaces in the normal error-snackbar path — the user can
+    // pick a different action from the home menu.
+    unawaited(_attemptBootRejoin());
+  }
+
+  Future<void> _attemptBootRejoin() async {
+    try {
+      final resumed = await widget.repository.rejoinSavedSession();
+      if (!resumed) return;
+      // Stash a "we're in a boot rejoin" marker; the listener
+      // resolves it once the joined-flag fires.
+      final session = await widget.repository.sessionStore.load();
+      _pendingRejoinRoomCode = session?.roomCode;
+    } catch (_) {
+      // Defensive: never let a failed boot-rejoin block the UI.
+    }
   }
 
   void _onRoomEvent() {
@@ -79,6 +108,16 @@ class _MyAppState extends State<MyApp> {
       // re-navigate (the old client double-navigated, A10).
       if (location != '/game') {
         _router.router.goNamed(RouteNames.game);
+      }
+      // T3.3: if this joined event is the boot-time rejoin completing,
+      // confirm it to the user. The code is best-effort — null just
+      // means a generic rejoin.
+      final bootCode = _pendingRejoinRoomCode;
+      if (bootCode != null) {
+        _pendingRejoinRoomCode = null;
+        _messengerKey.currentState?.showSnackBar(
+          SnackBar(content: Text('Rejoined room $bootCode')),
+        );
       }
     }
 
