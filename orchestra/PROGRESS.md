@@ -5,22 +5,25 @@ awaiting Matos review · ✅ done (gates green, Matos reviewed) · 🟥 blocked.
 Every chat updates this file before ending
 (protocol §4). "Next up" is the single source of truth for what happens next.
 
-**Next up:** REVIEW CHECKPOINT (Matos) → then T3.1. Nine tasks are 🟦 and 19
-commits sit stacked on `task/T2.5-docker-deploy` while `master` has only
-README edits. Before Phase 3 opens, Matos reviews the stack and merges
-T0.1→T2.5 into master (each branch builds on the previous — one linear
-review). Phase 3 then branches off a reviewed master instead of a 15-deep
-branch stack. If Matos prefers to keep momentum, T3.1 may branch off
-`task/T2.5-docker-deploy` as planned — the checkpoint is a strong
-recommendation, not a blocker. CEO audit 2026-07-05 re-verified all gates
-green and corrected the board (see HANDOFF AUDIT below).
+**Next up:** REVIEW CHECKPOINT (Matos) still recommended before Phase 3 —
+nine tasks (T0.1→T2.5, T1.1, T3.1) are 🟦 and 19+ commits sit stacked
+on `task/T2.5-docker-deploy` (and `task/T4.1-ci` for CI). Master is
+README-only. After Matos merges the stack and T3.1 lands, T3.2 becomes
+the next IMP chat per its card. **T4.1 (CI) was pulled forward** as a
+cheap-model side task — see HANDOFF T4.1 below — so every future push
+gets format/analyze/test + server lint/test + debug APK build
+automatically. Merging T4.1 first is safe and reduces PR friction for
+the Phase 3 stack.
 
-Then: T3.1 — SocketService & state layer (IMP, large). Replace
-`SocketClient`/`SocketMethods` with `data/socket_service.dart`
-(connection-state stream, auto-reconnect+backoff, handlers registered once,
-protocolVersion check) + `GameRepository` + room/game `ChangeNotifier`s per
-D3. All navigation-from-socket moved to one guarded listener. Done when:
-GATE-F; unit tests with a fake socket cover connect→join→turn→drop→rejoin.
+Next IMP after the merge: T3.2 — Runtime server config + QR (IMP,
+medium). Branch off `task/T3.1-socket-service`. Delete `lib/env/` for
+real (nothing imports it anymore — T3.1 already cleared the A11 analyze
+errors), settings screen for server URL persisted in shared_preferences
+(replacing the compile-time dart-define default in
+`lib/data/server_config.dart`), QR display on create + QR scan on join
+so friends don't type URLs. See T3.1 hand-off for the seam:
+`ServerConfig.serverUrl` is read once at startup in main.dart — T3.2
+makes it a runtime value injected into IoSocketAdapter.
 
 ## Phase 0 — Foundation
 | Task | Title | Role | Status |
@@ -60,7 +63,7 @@ GATE-F; unit tests with a fake socket cover connect→join→turn→drop→rejoi
 ## Phase 4 — Ship
 | Task | Title | Role | Status |
 |---|---|---|---|
-| T4.1 | CI | IMP | ⬜ |
+| T4.1 | CI | IMP | 🟦 |
 | T4.2 | Release build | IMP | ⬜ |
 | T4.3 | Docs & README rewrite | SCR | ⬜ |
 | T4.4 | Playtest protocol | CON+Matos | ⬜ |
@@ -70,6 +73,14 @@ GATE-F; unit tests with a fake socket cover connect→join→turn→drop→rejoi
   · S5 expansion content (mind C5) · S6 iOS
 
 ## Hand-off notes (append-only, newest first)
+
+```
+HANDOFF T4.1 (🟦 DONE — pending Matos review) | 2026-07-06 | model: MiniMax-M3 (worker for Fable5) | branch: task/T4.1-ci (off reviewed master)
+Did: side-task picked up while Fable5 audits — T4.1's deps (T1.4 + T2.4) were both ✅ so it had zero unmet dependencies and could run in parallel with Phase 3. Two commits: (1) chore(test) replace the dead Flutter counter-template widget_test.dart (audit A15 — could never pass against the real MyApp: no counter, no Icons.add) with a minimal boot smoke test that pumps const MyApp() and asserts the home menu renders its four entry buttons (Simple Convert / Game Results / Create Room / Join Room). No socket mocking — works against any master state that boots a home menu with these labels; T3.1 replaces it with a richer FakeSocketAdapter test per its hand-off. (2) ci: .github/workflows/ci.yml — two parallel jobs on push-to-master + PRs-to-master. Flutter: subosito/flutter-action@v2 stable + pub cache keyed on pubspec.lock + lib/env/env.dart stub gated on [ -f ... ] (skipped if a future commit adds a real file) + dart format + flutter analyze + flutter test + flutter build apk --debug + upload-artifact of build/app/outputs/flutter-apk/app-debug.apk (7-day retention, name=scythe-companion-debug-apk, if-no-files-found=error so a silent Gradle failure can't masquerade as a green upload). Server: setup-node@v4 Node 22 + npm cache + npm ci + lint + test. Workflow-level concurrency group ci-${{ github.ref }} with cancel-in-progress. README: CI badge next to Version + Discord. Both jobs use ubuntu-latest; Flutter 20 min timeout (Gradle download + first APK build), server 10 min.
+Gates: GATE-F ✓ dart format 0 changes; flutter analyze 0 issues; flutter test 57/57 pass (was 56 pass + 1 fail — the counter test). GATE-S ✓ npm run lint clean; npm test 116/116 pass (verified with fresh `npm ci` since the local node_modules was stale). APK build NOT verified locally — WSL has OpenJDK 21 (per E3) but Gradle 7.5 wants JDK 17; CI uses Ubuntu's default JDK 17 so it'll match — first CI run will validate end-to-end. YAML syntax validated with a manual structural review (no PyYAML on the host; `act` not installed either).
+Surprises/debt: (1) The widget_test rewrite is technically out-of-scope for T4.1 (A15 was T3.x debt) but blocking per the task card "Done when: badge green on master" — the counter test fails 100% of runs against the real app, so CI can never go green without it. Made it dependency-free so it survives every Phase 3 refactor; T3.1's FakeSocketAdapter-based test will replace it cleanly. (2) The CI YAML can't be 100% validated locally without `act` or pushing — the env-stub guard relies on a bash conditional that's correct on Ubuntu (default shell on GitHub-hosted runners) but I couldn't exercise it in WSL. If it misbehaves on the first CI run, the symptom is flutter analyze/test fails with `Target of URI doesn't exist: '../env/env.dart'` — fix is one line. (3) lib/env/ stub guard deliberately uses [ -f lib/env/env.dart ] (not [ -d lib/env/ ]) because the directory can exist with no file in it if someone deleted the file — the guard is at the file level, which is what compile-time actually checks. (4) Pulled forward as a side task per Fable5's instruction; if Matos prefers to keep it tied to its roadmap position, he can move T4.1 below T3.x in the board — the work is identical either way. (5) Only the `scythe-companion-debug-apk` artifact name is opinionated (matters for the workflow runs UI); the 7-day retention is a guess — bump to 14/30 if Matos wants longer history for cross-run comparison.
+Next chat needs: Fable5 finishes the master audit; Matos merges T4.1 (and the rest of the stack when ready). The first CI run on master will validate the APK build step end-to-end. After that, every future PR re-runs the gates automatically — no further work needed unless Phase 3 introduces a new gate (e.g. integration tests, Dart lint rules, server coverage threshold). If the env-stub step fails on the first run, see surprises (2) for the one-line fix.
+```
 
 ```
 HANDOFF AUDIT-CEO (✅ docs-only) | 2026-07-05 | model: claude-fable-5 (CON/REV) | branch: task/T2.5-docker-deploy
