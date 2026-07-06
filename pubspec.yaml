@@ -42,6 +42,9 @@ dependencies:
   # TODO[T3.4]: wire up flutter_local_notifications for "your turn" alerts
   flutter_local_notifications: ^19.0.0
   shared_preferences: ^2.5.5
+  # T3.2: display + scan room-code QR so friends join without typing URLs.
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^7.2.0
 
 
 

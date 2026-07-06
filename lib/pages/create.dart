@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../data/game_repository.dart';
 import '../models/players.dart';
 import '../utils/colors.dart';
 import '../provider/room_notifier.dart';
@@ -21,6 +22,26 @@ class _CreateRoomState extends State<CreateRoom> {
   String _selectedPlayerMat = '1';
   String _selectedPlayerTimer = '15:00';
   late int _secondsPlayerTimer;
+
+  bool _nicknameLoaded = false;
+
+  /// T3.2: pre-fill the nickname from the persisted settings so the
+  /// user doesn't retype it every game. Runs in didChangeDependencies
+  /// (not initState) because Provider lookup needs an inherited-widget
+  /// context; the _nicknameLoaded guard makes it one-shot.
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_nicknameLoaded) return;
+    _nicknameLoaded = true;
+    final repository = context.read<GameRepository>();
+    repository.loadNickname().then((saved) {
+      if (!mounted || saved == null || saved.isEmpty) return;
+      if (_playerName.text.isEmpty) {
+        setState(() => _playerName.text = saved);
+      }
+    });
+  }
 
   @override
   void dispose() {
