@@ -2,6 +2,7 @@
 # Scythe Companion App
 
 [![Version](https://img.shields.io/badge/Version-0.3.5-green)]()
+[![CI](https://github.com/Matos182/scythe-companion/actions/workflows/ci.yml/badge.svg)](https://github.com/Matos182/scythe-companion/actions/workflows/ci.yml)
 [![Discord](https://img.shields.io/badge/Discord-server-red)](https://discord.com/invite/qyG3fsxB)
 
 Welcome to the Scythe Companion App repository! This project offers an expanded feature set building upon the functionality of the original Scythe Coin Calculator, enhancing the experience for players of the renowned board game, Scythe. Designed to streamline coin calculations and manage turn timers, this Android application enables players to delve deeper into strategic gameplay with ease.
