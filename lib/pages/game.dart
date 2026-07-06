@@ -29,9 +29,10 @@ class GamePage extends StatefulWidget {
 }
 
 class _GamePageState extends State<GamePage> {
-  // TODO[T3.4]: hook "your turn" via flutter_local_notifications when
-  // app is backgrounded. The wakelock below keeps the screen on during
-  // your own turn, which only helps while the app is foregrounded.
+  // T3.4: "your turn" notifications are fired from the composition root
+  // (main.dart's guarded listener) when the app is backgrounded. The
+  // wakelock below keeps the screen on during your own turn, which only
+  // helps while the app is foregrounded.
 
   @override
   void initState() {

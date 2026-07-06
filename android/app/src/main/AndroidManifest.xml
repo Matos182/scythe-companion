@@ -2,6 +2,11 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <!-- T3.4: POST_NOTIFICATIONS — required on Android 13+ (API 33+) so
+         flutter_local_notifications can post "your turn" alerts. On
+         older Android this is a no-op (the permission is granted at
+         install time). The runtime prompt is triggered from home.dart. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <!-- T3.2: camera permission for QR scanning (mobile_scanner). The
          scanner UI gracefully degrades when the user declines, but
          the manifest must declare it so the runtime prompt fires. -->

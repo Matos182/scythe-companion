@@ -13,6 +13,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:scythe_companion/data/game_repository.dart';
+import 'package:scythe_companion/data/notifications.dart';
 import 'package:scythe_companion/data/session_store.dart';
 import 'package:scythe_companion/data/settings_repository.dart';
 import 'package:scythe_companion/data/socket_service.dart';
@@ -28,8 +29,14 @@ void main() {
         initialServerUrl: 'http://test-server:3000',
       );
 
+  // T3.4: MyApp now requires a NotificationService. The real plugin
+  // touches a method channel that doesn't exist in the test VM, so
+  // we inject a lightweight fake whose methods are no-ops.
+  final notifications = _NoopNotificationService();
+
   testWidgets('App boots to the home menu', (WidgetTester tester) async {
-    await tester.pumpWidget(MyApp(repository: buildRepository()));
+    await tester.pumpWidget(
+        MyApp(repository: buildRepository(), notifications: notifications));
 
     expect(find.text('Scythe Companion'), findsOneWidget);
     expect(find.text('Create Room'), findsOneWidget);
@@ -56,6 +63,7 @@ void main() {
       await tester.pumpWidget(MyApp(
         key: UniqueKey(),
         repository: buildRepository(),
+        notifications: notifications,
       ));
       await tester.pumpAndSettle();
       await tester.tap(find.text(button).first);
@@ -67,7 +75,8 @@ void main() {
 
   testWidgets('Settings opens from the home AppBar gear (T3.2)',
       (WidgetTester tester) async {
-    await tester.pumpWidget(MyApp(repository: buildRepository()));
+    await tester.pumpWidget(
+        MyApp(repository: buildRepository(), notifications: notifications));
 
     await tester.tap(find.byTooltip('Server & nickname'));
     await tester.pumpAndSettle();
@@ -75,4 +84,24 @@ void main() {
     expect(find.text('Settings'), findsOneWidget);
     expect(find.text('Server URL'), findsOneWidget);
   });
+}
+
+/// Test-only stub: the real [NotificationService] calls into a method
+/// channel that isn't available in the Dart test VM. This subclass
+/// shadows every method with a no-op so `widget_test.dart` can pump the
+/// full `MyApp` tree (including `home.dart`'s permission request).
+class _NoopNotificationService extends NotificationService {
+  _NoopNotificationService() : super();
+
+  @override
+  Future<void> initialize() async {}
+
+  @override
+  Future<bool> requestPermission() async => true;
+
+  @override
+  Future<void> showYourTurn({String? nickname}) async {}
+
+  @override
+  Future<void> cancel() async {}
 }
