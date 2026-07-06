@@ -1,29 +1,29 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+// SPDX-License-Identifier: MIT
 
-import 'package:flutter/material.dart';
+// Smoke test: the app boots with a fake socket and shows the home menu.
+// Replaces the counter-template test (audit A15) that could never pass.
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:scythe_companion/data/game_repository.dart';
+import 'package:scythe_companion/data/session_store.dart';
+import 'package:scythe_companion/data/socket_service.dart';
 import 'package:scythe_companion/main.dart';
 
+import 'data/fake_socket_adapter.dart';
+
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('App boots to the home menu', (WidgetTester tester) async {
+    final repository = GameRepository(
+      socketService: SocketService(adapter: FakeSocketAdapter()),
+      sessionStore: InMemorySessionStore(),
+    );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    await tester.pumpWidget(MyApp(repository: repository));
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('Scythe Companion'), findsOneWidget);
+    expect(find.text('Create Room'), findsOneWidget);
+    expect(find.text('Join Room'), findsOneWidget);
+    expect(find.text('Simple Convert'), findsOneWidget);
+    expect(find.text('Game Results'), findsOneWidget);
   });
 }

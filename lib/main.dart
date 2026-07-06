@@ -2,8 +2,15 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import './data/game_repository.dart';
+import './data/server_config.dart';
+import './data/session_store.dart';
+import './data/socket_adapter.dart';
+import './data/socket_service.dart';
 import './models/route_config.dart';
+import './models/route_const.dart';
 import './provider/room_data_provider.dart';
+import './provider/room_notifier.dart';
 
 // TODO[T3.4]: initialize flutter_local_notifications here (channel setup,
 // Android 13+ POST_NOTIFICATIONS permission flow). The old awesome_notifications
@@ -11,19 +18,87 @@ import './provider/room_data_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const MyApp());
+  // Composition root: the socket/session wiring is built ONCE here and
+  // handed down — widgets never construct services (02_ARCHITECTURE).
+  final socketService = SocketService(
+    adapter: IoSocketAdapter(ServerConfig.serverUrl),
+    versionProbe: () => healthzVersionProbe(ServerConfig.serverUrl),
+  );
+  final repository = GameRepository(
+    socketService: socketService,
+    sessionStore: SharedPrefsSessionStore(),
+  );
+  runApp(MyApp(repository: repository));
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class MyApp extends StatefulWidget {
+  const MyApp({super.key, required this.repository});
+
+  final GameRepository repository;
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  final _router = MyRouter();
+  final _messengerKey = GlobalKey<ScaffoldMessengerState>();
+  late final RoomNotifier _roomNotifier;
+
+  @override
+  void initState() {
+    super.initState();
+    _roomNotifier = RoomNotifier(widget.repository);
+    // THE single guarded listener (audit A10): all navigation-from-socket
+    // and error snackbars happen here — never inside socket callbacks
+    // with a captured page context.
+    _roomNotifier.addListener(_onRoomEvent);
+  }
+
+  void _onRoomEvent() {
+    if (!mounted) return;
+
+    if (_roomNotifier.consumeJoinedFlag()) {
+      final location =
+          _router.router.routerDelegate.currentConfiguration.uri.path;
+      // Rejoin success while already on the game screen must not
+      // re-navigate (the old client double-navigated, A10).
+      if (location != '/game') {
+        _router.router.goNamed(RouteNames.game);
+      }
+    }
+
+    final error = _roomNotifier.lastError;
+    if (error != null) {
+      _roomNotifier.clearError();
+      _messengerKey.currentState?.showSnackBar(
+        SnackBar(content: Text(error.message)),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _roomNotifier.removeListener(_onRoomEvent);
+    _roomNotifier.dispose();
+    widget.repository.dispose();
+    _router.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-        create: (context) => RoomDataProvider(),
+    return MultiProvider(
+        providers: [
+          // Multiplayer state (T3.1).
+          ChangeNotifierProvider.value(value: _roomNotifier),
+          // Offline calculator state (score entries).
+          ChangeNotifierProvider(create: (_) => RoomDataProvider()),
+        ],
         child: MaterialApp.router(
           title: 'Scythe Companion',
-          routerConfig: MyRouter().router,
+          scaffoldMessengerKey: _messengerKey,
+          routerConfig: _router.router,
         ));
   }
 }

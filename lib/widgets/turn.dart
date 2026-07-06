@@ -2,36 +2,20 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../provider/room_data_provider.dart';
-import '../resources/socket_methods.dart';
+import '../provider/room_notifier.dart';
 import '../utils/colors.dart';
 
-class TurnPage extends StatefulWidget {
+class TurnPage extends StatelessWidget {
   const TurnPage({super.key});
 
   @override
-  State<TurnPage> createState() => _TurnPageState();
-}
-
-class _TurnPageState extends State<TurnPage> {
-  final SocketMethods _socketMethods = SocketMethods();
-
-  @override
-  void initState() {
-    super.initState();
-    _socketMethods.updateRoomListener(context);
-    _socketMethods.turnListener(context);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    RoomDataProvider provider = Provider.of<RoomDataProvider>(context);
-    final room = provider.room;
+    final notifier = context.watch<RoomNotifier>();
 
     return ElevatedButton(
-        onPressed: room.turn.socketID == _socketMethods.socketClient.id
+        onPressed: notifier.isMyTurn
             ? () {
-                _socketMethods.passTurn(room.id);
+                notifier.passTurn();
               }
             : null,
         style: ButtonStyle(
