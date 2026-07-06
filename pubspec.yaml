@@ -41,6 +41,7 @@ dependencies:
   wakelock_plus: ^1.6.1
   # TODO[T3.4]: wire up flutter_local_notifications for "your turn" alerts
   flutter_local_notifications: ^19.0.0
+  shared_preferences: ^2.5.5
 
 
 

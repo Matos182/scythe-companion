@@ -2,8 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../provider/room_data_provider.dart';
-import '../resources/socket_methods.dart';
+import '../provider/room_notifier.dart';
 import '../utils/colors.dart';
 
 class LobbyPage extends StatefulWidget {
@@ -14,15 +13,13 @@ class LobbyPage extends StatefulWidget {
 }
 
 class _LobbyPageState extends State<LobbyPage> {
-  final _socketMethods = SocketMethods();
   late TextEditingController roomIdController;
 
   @override
   void initState() {
     super.initState();
-    _socketMethods.updateRoomListener(context);
     roomIdController = TextEditingController(
-      text: Provider.of<RoomDataProvider>(context, listen: false).room.id,
+      text: context.read<RoomNotifier>().room.id,
     );
   }
 
@@ -34,8 +31,13 @@ class _LobbyPageState extends State<LobbyPage> {
 
   @override
   Widget build(BuildContext context) {
-    RoomDataProvider provider = Provider.of<RoomDataProvider>(context);
-    final room = provider.room;
+    final notifier = context.watch<RoomNotifier>();
+    final room = notifier.room;
+    // Keep the read-only field in sync when the room arrives after
+    // initState (e.g. slow create round-trip).
+    if (roomIdController.text != room.id) {
+      roomIdController.text = room.id;
+    }
 
     return Column(mainAxisAlignment: MainAxisAlignment.center, children: [
       const Text(
@@ -112,9 +114,9 @@ class _LobbyPageState extends State<LobbyPage> {
       Container(
         padding: const EdgeInsets.fromLTRB(7, 50, 7, 7),
         child: ElevatedButton(
-            onPressed: room.creator.socketID == _socketMethods.socketClient.id
+            onPressed: notifier.isCreator
                 ? () {
-                    _socketMethods.startGame(room.id);
+                    notifier.startGame();
                   }
                 : null,
             style: ButtonStyle(

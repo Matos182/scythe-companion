@@ -20,6 +20,8 @@ class Player {
   final String playerfaction;
   final String playermat;
   final int timer;
+  final int remainingSec;
+  final bool connected;
 
   const Player({
     this.id = '',
@@ -28,12 +30,17 @@ class Player {
     this.playerfaction = '',
     this.playermat = '',
     this.timer = 0,
+    this.remainingSec = 0,
+    this.connected = true,
   });
 
   /// Parses a player sub-document from the server payload.
   ///
-  /// `_id` is the Mongoose-generated ObjectId (24 hex chars). All fields
-  /// default to empty/zero if missing — null-safety at the JSON edge.
+  /// `_id` is the server-minted playerId UUID (D4). `timer` is the
+  /// configured per-turn allowance; `remainingSec` the live countdown
+  /// (distinct fields — audit A6). `connected` is the presence flag
+  /// (T2.3). All fields default to empty/zero if missing — null-safety
+  /// at the JSON edge.
   factory Player.fromJson(Map<String, dynamic> json) {
     return Player(
       id: json['_id'] as String? ?? '',
@@ -42,8 +49,23 @@ class Player {
       playerfaction: json['playerfaction'] as String? ?? '',
       playermat: json['playermat'] as String? ?? '',
       timer: (json['timer'] as num?)?.toInt() ?? 0,
+      remainingSec: (json['remainingSec'] as num?)?.toInt() ?? 0,
+      connected: json['connected'] as bool? ?? true,
     );
   }
+
+  /// Copy with an updated live countdown (used when a server tick
+  /// arrives between full-room updates).
+  Player copyWith({int? remainingSec}) => Player(
+        id: id,
+        nickname: nickname,
+        socketID: socketID,
+        playerfaction: playerfaction,
+        playermat: playermat,
+        timer: timer,
+        remainingSec: remainingSec ?? this.remainingSec,
+        connected: connected,
+      );
 
   Map<String, dynamic> toJson() => {
         '_id': id,
@@ -52,6 +74,8 @@ class Player {
         'playerfaction': playerfaction,
         'playermat': playermat,
         'timer': timer,
+        'remainingSec': remainingSec,
+        'connected': connected,
       };
 
   @override
