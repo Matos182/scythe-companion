@@ -1,29 +1,27 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+// SPDX-License-Identifier: MIT
 
-import 'package:flutter/material.dart';
+// Smoke test: the app boots to the home menu and renders the four entry
+// buttons. Replaces the dead Flutter counter-template scaffold (audit A15)
+// that could never pass against the real MyApp — there is no counter and
+// no `+` icon in this app.
+//
+// This is the minimum bar that lets CI's `flutter test` go green. T3.1
+// extends this into a richer boot test that wires a FakeSocketAdapter
+// through the new SocketService; this version stays dependency-free so it
+// works on master as-is and survives every Phase 3 refactor.
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:scythe_companion/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
+  testWidgets('App boots to the home menu', (WidgetTester tester) async {
     await tester.pumpWidget(const MyApp());
+    await tester.pumpAndSettle();
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('Scythe Companion'), findsOneWidget);
+    expect(find.text('Simple Convert'), findsOneWidget);
+    expect(find.text('Game Results'), findsOneWidget);
+    expect(find.text('Create Room'), findsOneWidget);
+    expect(find.text('Join Room'), findsOneWidget);
   });
 }
