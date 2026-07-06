@@ -5,14 +5,18 @@ awaiting Matos review · ✅ done (gates green, Matos reviewed) · 🟥 blocked.
 Every chat updates this file before ending
 (protocol §4). "Next up" is the single source of truth for what happens next.
 
-**Next up:** T3.2 — Runtime server config + QR (IMP, medium). Branch off
-`task/T3.1-socket-service`. Delete `lib/env/` for real (nothing imports it
-anymore — T3.1 already cleared the A11 analyze errors), settings screen for
-server URL persisted in shared_preferences (replacing the compile-time
-dart-define default in `lib/data/server_config.dart`), QR display on create
-+ QR scan on join so friends don't type URLs. See T3.1 hand-off for the
-seam: `ServerConfig.serverUrl` is read once at startup in main.dart — T3.2
-makes it a runtime value injected into IoSocketAdapter.
+**Next up:** T3.3 — Game screen rebuild (IMP, large — MiniMax-M3 as
+worker). Branch off `task/T3.2-runtime-config-qr` (T3.2 is 🟦 — done and
+CEO-reviewed in-chat, awaiting Matos merge; see HANDOFF T3.2 below).
+Rebuild `lib/pages/game.dart` on the T3.1 state layer: consume
+`RoomNotifier` (room, ticks folded into `remainingSec`, `isMyTurn`,
+`isCreator`, `connectionState`), presence badges from `player.connected`
+(T2.3), pass/pause/resume via notifier actions only — the page must not
+touch GameRepository or any socket API directly. Show a reconnect banner
+off `SocketConnectionState`. Read 02_ARCHITECTURE "Connection lifecycle"
++ the T3.2 hand-off first. Also pending for Matos: merge the reviewed
+stack (T4.1 → T3.1 → T3.2) and push all task branches to origin
+(everything after T2.5 is still local-only).
 
 ## Phase 0 — Foundation
 | Task | Title | Role | Status |
@@ -44,7 +48,7 @@ makes it a runtime value injected into IoSocketAdapter.
 | Task | Title | Role | Status |
 |---|---|---|---|
 | T3.1 | SocketService & state layer | IMP | 🟦 |
-| T3.2 | Runtime server config + QR | IMP | ⬜ |
+| T3.2 | Runtime server config + QR | IMP | 🟦 |
 | T3.3 | Game screen rebuild | IMP | ⬜ |
 | T3.4 | Notifications done right | IMP | ⬜ |
 | T3.5 | UX & error polish | IMP | ⬜ |
@@ -62,6 +66,15 @@ makes it a runtime value injected into IoSocketAdapter.
   · S5 expansion content (mind C5) · S6 iOS
 
 ## Hand-off notes (append-only, newest first)
+
+```
+HANDOFF T3.2 (🟦 DONE — CEO-reviewed, pending Matos merge) | 2026-07-06 | model: claude-fable-5 (CEO/REV, finishing an anonymous IMP draft) | branch: task/T3.2-runtime-config-qr (worktree ~/dev/scythe-t32, off task/T3.1-socket-service)
+Did: reviewed + corrected + finished the T3.2 WIP found uncommitted in the worktree. FEATURE SET AS SHIPPED: (a) lib/data/settings_repository.dart — AppSettings {serverUrl, nickname} + SettingsRepository (SharedPrefs impl under `settings.*` key namespace, separate from `session.*`; InMemory impl for tests). (b) main() is now async: loads saved settings BEFORE building the adapter — URL resolution is saved-settings > --dart-define > localhost. (c) SocketService.swapAdapter(next, {versionProbe}) — disposes old adapter, installs new one + NEW /healthz probe, re-registers handlers, resets _versionChecked so the next connect() validates the NEW server (D5). (d) GameRepository: currentServerUrl getter; setServerUrl(url) normalizes (adds http:// if schemeless, strips trailing /), persists, swaps adapter, forgets rejoin identity (playerId/roomCode — new server doesn't know us; session.* prefs kept for returning to the old server); saveSettings() — blank URL = keep current (NOT reset-to-default), same URL = no swap (no needless disconnect); loadNickname() for pre-fill. (e) lib/pages/settings.dart at /settings via home AppBar gear — server URL + default nickname, persisted. (f) Lobby QR: lib/utils/qr_payload.dart pure-Dart codec for scythe://join?server=<urlenc>&room=<code> (JoinPayload with value equality; decodeJoin rejects wrong scheme/host/missing params, uppercases room code); waiting_lobby.dart renders QrImageView keyed ValueKey('qr:<payload>') — qr_flutter keeps `data` private so tests assert on the key. (g) Join page: Scan QR button → full-screen mobile_scanner modal (lib/pages/qr_scanner.dart) → setServerUrl(payload.server) + room-code field filled + snackbar; user still picks faction/mat and taps Join (no surprise auto-join). (h) Create/Join pre-fill nickname from settings via didChangeDependencies one-shot. (i) Manifest: CAMERA permission + camera feature optional (required=false) + usesCleartextTraffic=true (LAN http). (j) GameRepository added to MultiProvider in main.dart. Deps: qr_flutter ^4.1.0, mobile_scanner ^7.2.0.
+BUGS FIXED IN REVIEW (all were in the found WIP): (1) AndroidManifest had an XML comment INSIDE the <application> tag — unparseable, APK build would fail; moved comments outside tags. (2) WIP added a scythe:// VIEW intent-filter but NOTHING handles incoming deep-link intents (no app_links plugin, no go_router route) — external QR scans would open the app onto the router error page; removed the filter, left a manifest note deferring external-scan launch to T3.5. (3) versionProbe was still bound to the OLD server URL after a swap — protocol check would validate the wrong server; swapAdapter now takes a matching probe, wired in GameRepository._applyServerUrl. (4) main() never READ the persisted URL — settings survived only until app restart; main() is now async and loads them first. (5) GameRepository was never provided via Provider but 6 call sites context.read it — instant runtime crash on opening Create/Join/Settings/Lobby; added to MultiProvider. (6) saveSettings returned _socket.socketId as a fallback URL (nonsense) and persisted null on blank (dropping the running URL on next launch); rewrote persist-current semantics. (7) JoinPayload had no ==/hashCode — its own round-trip tests could never pass; added value equality. (8) test/widgets/waiting_lobby_test.dart was structurally broken (referenced nonexistent repository.socketId/_RepoInternals/QrImageView.data — 5 of the 8 analyze errors); rewrote against the ValueKey pattern. (9) qr_payload test asserted zero '?' in an encoded URI that requires exactly one; fixed to assert exactly-one '?' and '&'.
+Gates: GATE-F GREEN — dart format 0 changes; flutter analyze 0 issues; flutter test 112/112 (was 103 baseline+WIP: +2 lobby QR, +6 server-swap seam, +3 route-sweep smoke replacing 1 boot-only, plus WIP's settings/qr_payload suites now actually passing). New guard worth knowing: widget_test.dart now taps every home-menu route + the settings gear — a page reading a missing Provider now fails tests instead of crashing on-device (bug #5 above was invisible to the old boot-only smoke test).
+Surprises/debt: (1) The WIP was uncommitted with no hand-off — near-miss data loss and zero provenance; whoever ran it violated protocol §4. Everything is now committed in a single T3.2 commit. (2) External scythe:// deep-link (scan from the phone's OWN camera app while our app is closed) is deliberately NOT supported — needs app_links or equivalent + a go_router route + cold-start handling; T3.5 candidate, in-app Scan QR covers the playtest use case. (3) mobile_scanner ^7.2.0 handles the runtime camera permission prompt itself on Android; the errorBuilder shows a 'grant it in Settings' message on denial — fine for now, T3.5 can polish. (4) qr_scanner.dart uses Navigator.push (not go_router) because it's a modal returning a value — consistent with Flutter idiom, but note the mixed navigation styles. (5) lib/env/ was already gone from git (T3.1 removed the import; the dir never existed in the worktree) — the task card's 'delete lib/env/' is a no-op here, but ~/dev/scythe-companion may still have a stale gitignored lib/env/env.dart on disk; harmless. (6) ServerConfig (compile-time dart-define) intentionally KEPT as the fallback default — not dead code. (7) pubspec.lock + macos GeneratedPluginRegistrant churn from pub get — same auto-regen precedent as T0.4/T3.1, committed. (8) settings_test taps 'Save' by text; if T3.5 restyles the button, prefer a Key. (9) The QR encodes whatever URL the CREATOR is bound to — localhost default would produce a QR pointing joiners at THEIR OWN phone; acceptable now (playtest uses a real VPS/LAN URL via settings), T3.5 could warn when sharing a localhost QR.
+Next chat needs: T3.3 Game screen rebuild (IMP, large — planned worker: MiniMax-M3). Branch off task/T3.2-runtime-config-qr. Read 02_ARCHITECTURE 'Connection lifecycle' + T3.1's hand-off (esp. debt items 3/4/5) + this one. Scope: rebuild lib/pages/game.dart on RoomNotifier ONLY (no GameRepository/socket access from the page): render turn order + per-player remainingSec (ticks already folded into room.players by the notifier), presence badges from player.connected (T2.3 serialize exposes it), pass/pause/resume buttons via notifier actions gated on isMyTurn/isCreator, reconnect banner from connectionState (reconnecting/disconnected), keep WakelockPlus enable/disable lifecycle. T3.1 debt to pick up: (a) tick rendering via a narrow selector/Consumer so the whole page doesn't rebuild every second; (b) decide + wire rejoinSavedSession() on app start (suggest: auto-resume silently if session exists, snackbar 'Rejoined room XYZ'); (c) replace lobby TextField controller-sync-in-build with SelectableText if touched. DON'T: touch scoring domain code, server code, or notifications (T3.4). Done when: GATE-F green (format/analyze/test); widget tests for the game page driven through FakeSocketAdapter (see test/data/socket_service_test.dart roomJson/playerJson helpers and test/widgets/waiting_lobby_test.dart for the Provider wiring pattern); teach-back per protocol §4.
+```
 
 ```
 HANDOFF T3.1 (🟦 DONE — pending Matos review) | 2026-07-06 | model: claude-fable-5 (CEO/IMP) | branch: task/T3.1-socket-service (off reviewed master)
