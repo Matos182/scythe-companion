@@ -5,21 +5,18 @@ awaiting Matos review · ✅ done (gates green, Matos reviewed) · 🟥 blocked.
 Every chat updates this file before ending
 (protocol §4). "Next up" is the single source of truth for what happens next.
 
-**Next up:** T3.4 — Notifications done right (IMP, medium). Branch
-off `task/T3.3-game-screen-rebuild` (T3.3 is 🟦 — gates green,
-awaiting Matos review; see HANDOFF T3.3 below). T3.4 removes the
-awesome_notifications + flutter_background_service stubs in
-main.dart + home.dart + game.dart (T0.4 left them as `// TODO[T3.4]`
-markers) and replaces with `flutter_local_notifications ^19.0.0`
-(already in pubspec). Wire the Android 13+ POST_NOTIFICATIONS
-permission flow; show a "Your turn" notification on `newTurn` while
-backgrounded (the foreground path is already covered by
-`WakelockPlus` + the in-page banner from T3.3). Read 02_ARCHITECTURE
-"Notifications (fixes A9)" + the T3.3 hand-off (so you don't break
-the Selector in `lib/pages/game.dart` or the boot-rejoin path in
-`main.dart`). Pending for Matos in parallel: merge the reviewed
-stack (T4.1 → T3.1 → T3.2 → T3.3) and push all task branches to
-origin (everything after T2.5 is still local-only).
+**Next up:** T3.5 — UX & error polish (IMP, medium). Branch off
+`task/T3.4-notifications` (T3.4 is 🟦 — gates green, awaiting Matos
+review; see HANDOFF T3.4 below). T3.5 consumes T2.4's error codes
+into human messages, adds loading/disconnected/reconnecting states
+everywhere, empty states, confirm-leave dialogs, and centralizes
+strings (prep for PT l10n). Fold in the T3.1 debt item 3 (lobby
+TextField controller-sync-in-build → SelectableText) deferred by
+T3.3. Read 02_ARCHITECTURE + the T3.4 hand-off (so you don't break
+the WidgetsBindingObserver lifecycle or the justBecameMyTurn flag
+in RoomNotifier). Pending for Matos in parallel: merge the reviewed
+stack (T4.1 → T3.1 → T3.2 → T3.3 → T3.4) and push all task branches
+to origin (everything after T2.5 is still local-only).
 
 ## Phase 0 — Foundation
 | Task | Title | Role | Status |
@@ -53,7 +50,7 @@ origin (everything after T2.5 is still local-only).
 | T3.1 | SocketService & state layer | IMP | 🟦 |
 | T3.2 | Runtime server config + QR | IMP | 🟦 |
 | T3.3 | Game screen rebuild | IMP | 🟦 |
-| T3.4 | Notifications done right | IMP | ⬜ |
+| T3.4 | Notifications done right | IMP | 🟦 |
 | T3.5 | UX & error polish | IMP | ⬜ |
 
 ## Phase 4 — Ship
@@ -71,6 +68,11 @@ origin (everything after T2.5 is still local-only).
 ## Hand-off notes (append-only, newest first)
 
 ```
+|HANDOFF T3.4 (🟦 DONE — pending Matos review) | 2026-07-06 | model: glm-5.2 (IMP, worker per PROGRESS) | branch: task/T3.4-notifications (off task/T3.3-game-screen-rebuild)
+|Did: replaced the T0.4 TODO stubs with a proper flutter_local_notifications v19 wiring (fixes A9 — the old background isolate + phantom socket are gone, replaced by a foreground listener that fires a local notification when newTurn makes it my turn AND the app is backgrounded). NEW FILES: lib/data/notifications.dart — NotificationService wrapping the plugin (initialize, requestPermission, showYourTurn, cancel); platform-guarded by Platform.isAndroid so the method channel is never touched in the Dart test VM; uses AndroidInitializationSettings('@mipmap/ic_launcher') + Importance.high/Priority.high channel 'scythe_turn'. CHANGES: (1) RoomNotifier gained a justBecameMyTurn one-shot flag — set in _onRoom when a room update transitions to my turn (wasn't → is, compared via _isMyTurnForRoom helper against the previous _room state); consumed via consumeJustBecameMyTurnFlag(). (2) main.dart: NotificationService initialized in main() before runApp; _MyAppState now implements WidgetsBindingObserver — didChangeAppLifecycleState sets _appIsBackgrounded = (state != AppLifecycleState.resumed); the guarded _onRoomEvent listener checks consumeJustBecameMyTurnFlag() && _appIsBackgrounded and fires showYourTurn(nickname: room.turn.nickname). NotificationService added to MultiProvider so home.dart can read it. (3) home.dart: didChangeDependencies one-shot (bool guard) calls context.read<NotificationService>().requestPermission() — uses didChangeDependencies (not initState) because context.read needs the inherited provider. (4) game.dart: TODO replaced with a comment pointing to the service-layer notification path. (5) AndroidManifest.xml: POST_NOTIFICATIONS permission added (Android 13+ API 33+). (6) pubspec.yaml: TODO comment replaced with T3.4 note. TESTS: widget_test.dart updated with _NoopNotificationService stub (MyApp now requires notifications param); +2 room_notifier_test.dart tests (justBecameMyTurn transition + no-fire on same-player refresh). The initial seat-alice IS a transition (empty room → Alice's turn) so the flag correctly fires on the first room update — tests assert this.
+|Gates: GATE-F GREEN — dart format 0 changes; flutter analyze 0 issues (was 0); flutter test 125/125 (was 123; +2 new in test/data/room_notifier_test.dart).
+|Surprises/debt: (1) The T3.3 worktree at ~/dev/scythe-t33 was force-removed to work on the main checkout — safe, all T3.3 work was committed. (2) The justBecameMyTurn flag fires on the initial room entry (empty → my turn) — this is correct by design (the user WAS backgrounded when the game started, so a notification is appropriate), but it means the composition root's listener sees the flag on the first join. The listener only fires if _appIsBackgrounded is true, so on a fresh join from the home menu (app is foregrounded) the notification is suppressed. (3) flutter_local_notifications 19.5.0 is installed (pubspec says ^19.0.0); 22.0.1 is available but the ^19 constraint is intentional — 22.x may have breaking API changes. (4) The notification-tap callback (_onNotificationTapped) is intentionally empty — the OS resumes the app's task, and the composition root's rejoin logic handles the rest. Deep-linking to a specific room is a T3.5 candidate. (5) Platform.isAndroid is used (not defaultTargetPlatform) because it's a real dart:io check — in the Dart test VM (Linux host) Platform.isAndroid is false, so the plugin methods are no-ops and tests don't crash. (6) No auto-generated plugin registrant churn this time — the dependency was already in pubspec from T0.4, so pub get didn't change any generated files. (7) The PROGRESS.md markdown fence issue (T3.3 debt 1) is still present — the new hand-off is inside the topmost fence, older ones below still have orphan pairs. Still cosmetic, still out of scope.
+|Next chat needs: T3.5 UX & error polish (IMP, medium). Branch off task/T3.4-notifications. Read 02_ARCHITECTURE + this hand-off. Scope: loading/disconnected/reconnecting states everywhere, human error messages from T2.4 codes ({code, message} envelope — map VAL_*/STATE_*/REJOIN_*/RATE_*/SERVER_* to user-friendly strings), empty states, confirm-leave dialogs, centralize strings. Fold in T3.1 debt item 3 (lobby TextField controller-sync-in-build → SelectableText, deferred by T3.3). Don't break the WidgetsBindingObserver lifecycle in _MyAppState or the justBecameMyTurn flag in RoomNotifier. Done when: GATE-F; Matos clicks through every failure path (server down, bad code, room full, drop mid-turn). Teach-back per protocol §4.
 |HANDOFF T3.3 (🟦 DONE — pending Matos review) | 2026-07-06 | model: MiniMax-M3 (IMP, worker per PROGRESS) | branch: task/T3.3-game-screen-rebuild (worktree ~/dev/scythe-t33, off task/T3.2-runtime-config-qr)
 |Did: rebuilt lib/pages/game.dart on the T3.1 state layer per 02_ARCHITECTURE 'Connection lifecycle' + the T3.3 task card. STRUCTURE: page delegates to four sub-widgets — _ReconnectBanner (orange strip; shows on reconnecting OR disconnected — was reconnecting only), _PauseResumeAction (AppBar Icon; pause on my-turn-not-paused, resume on my-turn-paused, disabled play_arrow otherwise), _ActiveGameView (banner + countdown + pass button + presence table), _PlayersTable (DataTable; presence suffix on player.connected==false). TURN COUNTDOWN: wrapped in Selector<RoomNotifier, int> keyed on players[turnIndex].remainingSec so a 1s tick rebuilds only the countdown subtree, not the whole page (T3.1 hand-off debt item 4). PASS/PAUSE/RESUME go through RoomNotifier actions only — page never imports GameRepository/SocketService. PASS BUTTON GATE: notifier.isMyTurn (read in TurnPage). PRESENCE BADGE: already wired from T2.3; kept as-is. WAKELOCK: WakelockPlus.enable/disable moved to initState/dispose so we don't churn it on every build. REJOIN UX (T3.1 hand-off debt item 5b): main()'s _MyAppState.initState now fires repository.rejoinSavedSession() via unawaited. No stored session → silent no-op. Stored session → its join-flag reaches the existing guarded listener; I added _pendingRejoinRoomCode so the listener shows a 'Rejoined room XYZ' snackbar on the boot-time event. A dead/rejected session surfaces via the existing errorOccurred envelope. GameRepository gained a public sessionStore getter so the composition root can read roomCode without spelunking. NOT-TOUCHED (per scope): server code, scoring domain, lobby TextField (T3.1 debt item 3 — controller-sync-in-build; left for T3.5/docs-sync because it's a textfield detour unrelated to the state-layer rebuild). TESTS: test/widgets/game_test.dart (11 tests, all driven through FakeSocketAdapter, same composition-root pattern as test/widgets/waiting_lobby_test.dart): turn banner shows player + round, lobby fallback when room.isJoin=true, Pass button enabled on isMyTurn (tap emits turn), Pass button disabled when another player's the active turn (newTurn flips room.turn.id), pause IconButton tap emits pause, presence (offline) suffix renders, reconnect banner (reconnecting) after simulateDrop, disconnected banner when socket never connects, tick event updates the selector subtree (banner still on screen, 04:59 appears), GameRepository.rejoinSavedSession returns false with no session and fires rejoinRoom with stored creds when seeded. Same roomJson/playerJson helpers reused from test/data/socket_service_test.dart.
 |Gates: GATE-F GREEN — dart format 0 changes; flutter analyze 0 issues (was 0); flutter test 123/123 (was 112; +11 new in test/widgets/game_test.dart).
