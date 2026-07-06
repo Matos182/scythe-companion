@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import './data/game_repository.dart';
 import './data/server_config.dart';
 import './data/session_store.dart';
+import './data/settings_repository.dart';
 import './data/socket_adapter.dart';
 import './data/socket_service.dart';
 import './models/route_config.dart';
@@ -16,17 +17,30 @@ import './provider/room_notifier.dart';
 // Android 13+ POST_NOTIFICATIONS permission flow). The old awesome_notifications
 // setup + background service were removed in T0.4 — full replacement lands in T3.4.
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Composition root: the socket/session wiring is built ONCE here and
   // handed down — widgets never construct services (02_ARCHITECTURE).
+  //
+  // Server URL resolution order (T3.2):
+  //   1. shared_preferences `settings.serverUrl` (Settings page / QR scan
+  //      persisted it on a previous run);
+  //   2. compile-time `ServerConfig.serverUrl`
+  //      (`--dart-define=SCYTHE_SERVER_URL=…` or the localhost fallback).
+  // The await is a one-time platform-channel read (~ms) before the first
+  // frame — same pattern the Flutter docs use for startup config.
+  final settingsRepository = SharedPrefsSettingsRepository();
+  final settings = await settingsRepository.load();
+  final initialUrl = settings.serverUrl ?? ServerConfig.serverUrl;
   final socketService = SocketService(
-    adapter: IoSocketAdapter(ServerConfig.serverUrl),
-    versionProbe: () => healthzVersionProbe(ServerConfig.serverUrl),
+    adapter: IoSocketAdapter(initialUrl),
+    versionProbe: () => healthzVersionProbe(initialUrl),
   );
   final repository = GameRepository(
     socketService: socketService,
     sessionStore: SharedPrefsSessionStore(),
+    settingsRepository: settingsRepository,
+    initialServerUrl: initialUrl,
   );
   runApp(MyApp(repository: repository));
 }
@@ -90,6 +104,9 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MultiProvider(
         providers: [
+          // The repository itself (T3.2): pages read it for settings,
+          // nickname pre-fill, server URL (QR), and adapter swaps.
+          Provider<GameRepository>.value(value: widget.repository),
           // Multiplayer state (T3.1).
           ChangeNotifierProvider.value(value: _roomNotifier),
           // Offline calculator state (score entries).

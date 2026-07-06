@@ -108,8 +108,12 @@ class SocketService {
   /// Wire protocol this client build understands (docs/PROTOCOL.md).
   static const int expectedProtocolVersion = 1;
 
-  final SocketAdapter _adapter;
-  final Future<int?> Function()? _versionProbe;
+  SocketAdapter _adapter;
+
+  /// Probe for the server's protocol version. NOT final: a server swap
+  /// (T3.2 settings / QR scan) must also swap the probe, otherwise the
+  /// next handshake would validate against the OLD server's /healthz.
+  Future<int?> Function()? _versionProbe;
 
   SocketConnectionState _state = SocketConnectionState.disconnected;
   bool _wasConnected = false;
@@ -154,7 +158,7 @@ class SocketService {
       return;
     }
     if (!_versionChecked && _versionProbe != null) {
-      final serverVersion = await _versionProbe();
+      final serverVersion = await _versionProbe!();
       if (serverVersion != null && serverVersion != expectedProtocolVersion) {
         _setState(SocketConnectionState.protocolMismatch);
         _errorController.add(SocketError(
@@ -175,6 +179,30 @@ class SocketService {
   void disconnect() {
     _setState(SocketConnectionState.disconnected);
     _adapter.disconnect();
+  }
+
+  /// Swap the underlying transport (T3.2: settings change server URL,
+  /// or QR scan points at a different host).
+  ///
+  /// Disposes the old adapter cleanly (no leaked socket), installs the
+  /// new one (and its matching [versionProbe] — probing the old URL
+  /// after a swap would validate the wrong server), re-registers all
+  /// handlers, and resets version-probe state so the next `connect()`
+  /// rechecks protocol compatibility with the new server. The in-flight
+  /// room session (if any) is intentionally forgotten — the new URL
+  /// almost certainly has a different room code namespace, and silently
+  /// trying to rejoin there would mislead the user. Callers should
+  /// drive a fresh connect/join.
+  void swapAdapter(SocketAdapter next,
+      {Future<int?> Function()? versionProbe}) {
+    if (identical(next, _adapter)) return;
+    _adapter.dispose();
+    _adapter = next;
+    _versionProbe = versionProbe ?? _versionProbe;
+    _wasConnected = false;
+    _versionChecked = false;
+    _setState(SocketConnectionState.disconnected);
+    _registerHandlers();
   }
 
   // ── Emits (payload shapes per docs/PROTOCOL.md) ───────────────────
