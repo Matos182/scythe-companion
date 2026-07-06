@@ -1,0 +1,131 @@
+# CI for the Scythe Companion project.
+# Two parallel jobs: Flutter client + Node server.
+# Triggers on push to master and on pull requests targeting master.
+# Dependencies (per 03_ROADMAP): T1.4 (lint pass), T2.4 (server gates green).
+#
+# Flutter job: format, analyze, test, then a debug APK build uploaded as an
+# artifact. The APK build is required by the T4.1 task card and lets Matos
+# pull the latest debug build off any CI run without a local Android toolchain.
+#
+# Notes:
+#   - lib/env/env.dart is gitignored (per .gitignore: /lib/env/) and contains
+#     a local server IP. Until T3.2 deletes lib/env/ wholesale, CI synthesizes
+#     a stub so `flutter analyze` + `flutter test` match the documented
+#     baseline. The stub is only written if the folder is missing — re-runs
+#     don't trample a real file checked in by a future commit.
+#   - Concurrency cancel-in-progress keeps CI cheap when a branch is force-
+#     pushed; the master branch runs to completion so the badge stays truthful.
+
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  flutter:
+    name: Flutter (format · analyze · test · debug APK)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Print Flutter version
+        run: flutter --version
+
+      # pub-cache key: bumps when pubspec.lock changes. restore-keys falls back
+      # to any prior pub cache for the same OS when the lockfile is new.
+      - name: Cache pub packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            ${{ runner.tool_cache/flutter-path }}/.pub-cache
+          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            pub-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # lib/env/env.dart is gitignored. Until T3.2 deletes it, write a stub so
+      # anything that imports it (currently lib/resources/socket_client.dart)
+      # compiles on CI. Skip if lib/env/ already exists — never clobber a real
+      # file someone might have committed later.
+      - name: Ensure lib/env/env.dart stub exists (T3.2 will delete)
+        run: |
+          if [ ! -f lib/env/env.dart ]; then
+            mkdir -p lib/env
+            cat > lib/env/env.dart <<'EOF'
+            // CI-only stub. Real file is gitignored (local server IP).
+            // Removed by T3.2 — runtime server config replaces this.
+            const String ipaddress2 = 'localhost';
+            EOF
+          fi
+
+      - name: Verify formatting
+        run: dart format --set-exit-if-changed .
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Run tests
+        run: flutter test
+
+      # Debug APK per T4.1 task card. --debug skips the release signing/R8
+      # pipeline (T4.2 handles the release keystore); the artifact is large
+      # enough (~30 MB) so we cap retention at 7 days.
+      - name: Build debug APK
+        run: flutter build apk --debug
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: scythe-companion-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
+
+  server:
+    name: Server (lint · test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: server
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      # npm ci requires a clean install — wipes server/node_modules first so
+      # any locally-installed drift doesn't leak into CI. Matches the
+      # gate-S-equivalent local command.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
