@@ -2,7 +2,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../provider/room_data_provider.dart';
 import '../pages/game.dart';
 import '../pages/create.dart';
 import '../pages/home.dart';
@@ -14,7 +13,6 @@ import './route_const.dart';
 
 class MyRouter {
   final GoRouter router = GoRouter(
-      refreshListenable: RoomDataProvider(),
       initialLocation: '/',
       errorPageBuilder: (context, state) => MaterialPage(
           key: state.pageKey,

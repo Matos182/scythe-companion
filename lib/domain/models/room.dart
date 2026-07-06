@@ -67,6 +67,17 @@ class Room {
     );
   }
 
+  /// Copy with replaced fields (used to fold 1s server ticks into the
+  /// current room state without waiting for a full `updateRoom`).
+  Room copyWith({List<Player>? players, Player? turn}) => Room(
+        id: id,
+        isJoin: isJoin,
+        players: players ?? this.players,
+        turn: turn ?? this.turn,
+        creator: creator,
+        turnState: turnState,
+      );
+
   Map<String, dynamic> toJson() => {
         '_id': id,
         'isJoin': isJoin,
