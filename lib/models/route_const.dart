@@ -6,4 +6,5 @@ class RouteNames {
   static const String home = 'home';
   static const String simple = 'simple';
   static const String game = 'game';
+  static const String settings = 'settings';
 }

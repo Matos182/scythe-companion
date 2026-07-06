@@ -2,12 +2,13 @@
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../pages/game.dart';
 import '../pages/create.dart';
+import '../pages/game.dart';
 import '../pages/home.dart';
 import '../pages/join.dart';
 import '../pages/player_add.dart';
 import '../pages/result.dart';
+import '../pages/settings.dart';
 import '../pages/simple.dart';
 import './route_const.dart';
 
@@ -47,6 +48,10 @@ class MyRouter {
             name: RouteNames.result,
             path: '/result',
             builder: ((context, state) => const ResultPage())),
+        GoRoute(
+            name: RouteNames.settings,
+            path: '/settings',
+            builder: ((context, state) => const SettingsPage())),
       ]);
 
   void dispose() {

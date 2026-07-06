@@ -27,6 +27,18 @@ class _HomePageState extends State<HomePage> {
             style: TextStyle(color: buttonTextColor),
           ),
           centerTitle: true,
+          actions: [
+            IconButton(
+              icon: const Icon(
+                Icons.settings,
+                color: buttonTextColor,
+              ),
+              tooltip: 'Server & nickname',
+              onPressed: () {
+                context.goNamed(RouteNames.settings);
+              },
+            ),
+          ],
         ),
         body: Container(
             decoration: const BoxDecoration(

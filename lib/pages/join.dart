@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../data/game_repository.dart';
 import '../models/players.dart';
 import '../provider/room_notifier.dart';
 import '../utils/colors.dart';
+import '../utils/qr_payload.dart';
 import '../widgets/widgets.dart';
+import 'qr_scanner.dart';
 
 class JoinRoom extends StatefulWidget {
   const JoinRoom({super.key});
@@ -18,12 +21,57 @@ class _JoinRoomState extends State<JoinRoom> {
   final _roomId = TextEditingController();
   String _selectedPlayerFaction = 'Crimea';
   String _selectedPlayerMat = '1';
+  bool _nicknameLoaded = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_nicknameLoaded) return;
+    _nicknameLoaded = true;
+    final repository = context.read<GameRepository>();
+    repository.loadNickname().then((saved) {
+      if (!mounted || saved == null || saved.isEmpty) return;
+      if (_playerName.text.isEmpty) {
+        setState(() => _playerName.text = saved);
+      }
+    });
+  }
 
   @override
   void dispose() {
     super.dispose();
     _playerName.dispose();
     _roomId.dispose();
+  }
+
+  /// T3.2: launch the QR scanner, take the first `scythe://join?…`
+  /// payload we see, and:
+  ///   1) repoint the socket adapter at the embedded server URL
+  ///      (so the upcoming joinRoom hits the right server);
+  ///   2) fill the room-code field;
+  ///   3) surface a confirmation snackbar so the user sees what happened.
+  /// We DON'T auto-tap Join — the user still picks faction/mat and
+  /// confirms. This matches the existing flow and avoids surprises.
+  Future<void> _scanQr() async {
+    final payload = await Navigator.of(context).push<JoinPayload>(
+      MaterialPageRoute(builder: (_) => const QrScannerPage()),
+    );
+    if (!mounted || payload == null) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final repository = context.read<GameRepository>();
+    // Set the URL first; if it differs from the current one, the
+    // adapter swap (T3.2) gives the next joinRoom the right host.
+    await repository.setServerUrl(payload.server);
+    setState(() {
+      _roomId.text = payload.roomCode;
+    });
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          'Scanned room ${payload.roomCode} on ${payload.server}',
+        ),
+      ),
+    );
   }
 
   @override
@@ -128,21 +176,40 @@ class _JoinRoomState extends State<JoinRoom> {
                       )),
                   Padding(
                     padding: const EdgeInsets.all(2.0),
-                    child: ElevatedButton(
-                        onPressed: () {
-                          context.read<RoomNotifier>().joinRoom(
-                              nickname: _playerName.text,
-                              roomCode: _roomId.text.trim().toUpperCase(),
-                              faction: _selectedPlayerFaction,
-                              mat: _selectedPlayerMat);
-                        },
-                        style: const ButtonStyle(
-                            elevation: WidgetStatePropertyAll(7),
-                            backgroundColor: WidgetStatePropertyAll(bgColorBar),
-                            foregroundColor:
-                                WidgetStatePropertyAll(buttonTextColor),
-                            fixedSize: WidgetStatePropertyAll(Size(150, 50))),
-                        child: const Text("Join Room")),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ElevatedButton(
+                            onPressed: () {
+                              context.read<RoomNotifier>().joinRoom(
+                                  nickname: _playerName.text,
+                                  roomCode: _roomId.text.trim().toUpperCase(),
+                                  faction: _selectedPlayerFaction,
+                                  mat: _selectedPlayerMat);
+                            },
+                            style: const ButtonStyle(
+                                elevation: WidgetStatePropertyAll(7),
+                                backgroundColor:
+                                    WidgetStatePropertyAll(bgColorBar),
+                                foregroundColor:
+                                    WidgetStatePropertyAll(buttonTextColor),
+                                fixedSize:
+                                    WidgetStatePropertyAll(Size(150, 50))),
+                            child: const Text("Join Room")),
+                        const SizedBox(width: 12),
+                        ElevatedButton(
+                            onPressed: _scanQr,
+                            style: const ButtonStyle(
+                                elevation: WidgetStatePropertyAll(7),
+                                backgroundColor:
+                                    WidgetStatePropertyAll(bgColorBar),
+                                foregroundColor:
+                                    WidgetStatePropertyAll(buttonTextColor),
+                                fixedSize:
+                                    WidgetStatePropertyAll(Size(150, 50))),
+                            child: const Text("Scan QR")),
+                      ],
+                    ),
                   ),
                 ]))));
   }
