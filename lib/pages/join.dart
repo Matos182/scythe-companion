@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../models/players.dart';
-import '../resources/socket_methods.dart';
+import '../provider/room_notifier.dart';
 import '../utils/colors.dart';
 import '../widgets/widgets.dart';
 
@@ -15,16 +16,8 @@ class JoinRoom extends StatefulWidget {
 class _JoinRoomState extends State<JoinRoom> {
   final _playerName = TextEditingController();
   final _roomId = TextEditingController();
-  final _socketMethods = SocketMethods();
   String _selectedPlayerFaction = 'Crimea';
   String _selectedPlayerMat = '1';
-
-  @override
-  void initState() {
-    super.initState();
-    _socketMethods.joinRoomSuccessListener(context);
-    _socketMethods.errorOccurredListener(context);
-  }
 
   @override
   void dispose() {
@@ -137,11 +130,11 @@ class _JoinRoomState extends State<JoinRoom> {
                     padding: const EdgeInsets.all(2.0),
                     child: ElevatedButton(
                         onPressed: () {
-                          _socketMethods.joinRoom(
-                              _playerName.text,
-                              _roomId.text,
-                              _selectedPlayerFaction,
-                              _selectedPlayerMat);
+                          context.read<RoomNotifier>().joinRoom(
+                              nickname: _playerName.text,
+                              roomCode: _roomId.text.trim().toUpperCase(),
+                              faction: _selectedPlayerFaction,
+                              mat: _selectedPlayerMat);
                         },
                         style: const ButtonStyle(
                             elevation: WidgetStatePropertyAll(7),

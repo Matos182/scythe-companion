@@ -2,9 +2,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../models/players.dart';
 import '../utils/colors.dart';
-import '../resources/socket_methods.dart';
+import '../provider/room_notifier.dart';
 import '../widgets/widgets.dart';
 
 class CreateRoom extends StatefulWidget {
@@ -16,18 +17,10 @@ class CreateRoom extends StatefulWidget {
 
 class _CreateRoomState extends State<CreateRoom> {
   final _playerName = TextEditingController();
-  final _socketMethods = SocketMethods();
   String _selectedPlayerFaction = 'Crimea';
   String _selectedPlayerMat = '1';
   String _selectedPlayerTimer = '15:00';
   late int _secondsPlayerTimer;
-
-  @override
-  void initState() {
-    super.initState();
-    _socketMethods.createRoomSuccessListener(context);
-    _socketMethods.errorOccurredListener(context);
-  }
 
   @override
   void dispose() {
@@ -154,11 +147,11 @@ class _CreateRoomState extends State<CreateRoom> {
                           } else if (_selectedPlayerTimer == '30:00') {
                             _secondsPlayerTimer = 1800;
                           }
-                          _socketMethods.createRoom(
-                              _playerName.text,
-                              _selectedPlayerFaction,
-                              _selectedPlayerMat,
-                              _secondsPlayerTimer);
+                          context.read<RoomNotifier>().createRoom(
+                              nickname: _playerName.text,
+                              faction: _selectedPlayerFaction,
+                              mat: _selectedPlayerMat,
+                              timerSec: _secondsPlayerTimer);
                         },
                         style: const ButtonStyle(
                             elevation: WidgetStatePropertyAll(7),
