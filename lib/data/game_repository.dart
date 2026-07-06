@@ -65,6 +65,11 @@ class GameRepository {
   /// QR payload so a scanned join lands on the right server (T3.2).
   String? get currentServerUrl => _currentServerUrl;
 
+  /// Underlying [SessionStore] — used by the composition root to read
+  /// the saved credentials for the boot-time "rejoined room XYZ"
+  /// snackbar (T3.3).
+  SessionStore get sessionStore => _sessions;
+
   // ── Actions ───────────────────────────────────────────────────────
 
   Future<void> connect() => _socket.connect();
