@@ -36,18 +36,18 @@ Every chat updates this file before ending
 ## Phase 3 — Client multiplayer rebuild
 | Task | Title | Role | Status |
 |---|---|---|---|
-| T3.1 | SocketService & state layer | IMP | 🟦 |
-| T3.2 | Runtime server config + QR | IMP | 🟦 |
-| T3.3 | Game screen rebuild | IMP | 🟦 |
-| T3.4 | Notifications done right | IMP | 🟦 |
-| T3.5 | UX & error polish | IMP | 🟦 |
-| T3.5.x | ConnectionPill subscribe fix | IMP | 🟦 |
+| T3.1 | SocketService & state layer | IMP | ✅ |
+| T3.2 | Runtime server config + QR | IMP | ✅ |
+| T3.3 | Game screen rebuild | IMP | ✅ |
+| T3.4 | Notifications done right | IMP | ✅ |
+| T3.5 | UX & error polish | IMP | ✅ |
+| T3.5.x | ConnectionPill subscribe fix | IMP | ✅ |
 
 ## Phase 4 — Ship
 | Task | Title | Role | Status |
 |---|---|---|---|
-| T4.1 | CI | IMP | 🟦 |
-| T4.2 | Release build | IMP | 🟦 |
+| T4.1 | CI | IMP | ✅ |
+| T4.2 | Release build | IMP | ✅ |
 | T4.3 | Docs & README rewrite | SCR | ⬜ |
 | T4.4 | Playtest protocol | CON+Matos | ⬜ |
 
