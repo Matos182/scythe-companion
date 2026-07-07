@@ -103,4 +103,64 @@ void main() {
     notifier.clearError();
     expect(notifier.lastError, isNull);
   });
+
+  // T3.4: the justBecameMyTurn one-shot flag fires only on a genuine
+  // transition (wasn't my turn → is my turn), not on refreshes that
+  // keep the same active player.
+  group('justBecameMyTurn (T3.4)', () {
+    test('fires when newTurn transitions to my turn', () async {
+      await seatAlice();
+      // Seat alice: turnIndex 0 = Alice → the initial room went from
+      // empty (no turn) to Alice's turn, so the flag IS set — this is
+      // a genuine transition from the notifier's perspective.
+      expect(notifier.consumeJustBecameMyTurnFlag(), isTrue);
+      // One-shot: second consume is false.
+      expect(notifier.consumeJustBecameMyTurnFlag(), isFalse);
+
+      // Bob's turn — not my turn, flag stays false.
+      fake.serverEmit(
+          'newTurn',
+          roomJson(turnIndex: 1, players: [
+            playerJson(
+                id: 'uuid-alice', nickname: 'Alice', socketID: 'socket-1'),
+            playerJson(id: 'uuid-bob', nickname: 'Bob', socketID: 'socket-2'),
+          ]));
+      await Future<void>.delayed(Duration.zero);
+      expect(notifier.consumeJustBecameMyTurnFlag(), isFalse);
+
+      // Back to Alice — genuine transition, flag fires.
+      fake.serverEmit(
+          'newTurn',
+          roomJson(turnIndex: 0, players: [
+            playerJson(
+                id: 'uuid-alice', nickname: 'Alice', socketID: 'socket-1'),
+            playerJson(id: 'uuid-bob', nickname: 'Bob', socketID: 'socket-2'),
+          ]));
+      await Future<void>.delayed(Duration.zero);
+      expect(notifier.consumeJustBecameMyTurnFlag(), isTrue);
+      expect(notifier.consumeJustBecameMyTurnFlag(), isFalse);
+    });
+
+    test('does not fire on a refresh that keeps the same active player',
+        () async {
+      await seatAlice();
+      // Consume the initial transition flag (empty → Alice's turn).
+      expect(notifier.consumeJustBecameMyTurnFlag(), isTrue);
+
+      // Another update with the same turn (Alice still at turnIndex 0).
+      // No transition → flag stays false.
+      fake.serverEmit(
+          'updateRoom',
+          roomJson(turnIndex: 0, players: [
+            playerJson(
+                id: 'uuid-alice',
+                nickname: 'Alice',
+                socketID: 'socket-1',
+                remainingSec: 500),
+            playerJson(id: 'uuid-bob', nickname: 'Bob', socketID: 'socket-2'),
+          ]));
+      await Future<void>.delayed(Duration.zero);
+      expect(notifier.consumeJustBecameMyTurnFlag(), isFalse);
+    });
+  });
 }
