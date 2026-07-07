@@ -111,8 +111,13 @@ class _JoinRoomState extends State<JoinRoom> {
 
   @override
   Widget build(BuildContext context) {
-    // T3.5: surface the connecting state as a pill above the form.
-    final connectionState = context.read<RoomNotifier>().connectionState;
+    // T3.5.x: surface the connecting state as a pill above the form
+    // (parity with Create). Must be `watch` so the widget rebuilds when
+    // the RoomNotifier flips disconnected→connecting→connected during
+    // the joinRoom round trip — see create.dart for the same fix and
+    // the test in test/widgets/forms_validation_test.dart that proves
+    // the subscription is live.
+    final connectionState = context.watch<RoomNotifier>().connectionState;
     final isConnecting = connectionState == SocketConnectionState.connecting;
 
     return Scaffold(

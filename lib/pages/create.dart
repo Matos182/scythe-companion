@@ -84,11 +84,13 @@ class _CreateRoomState extends State<CreateRoom> {
 
   @override
   Widget build(BuildContext context) {
-    // T3.5: surface the connecting state as a pill above the form so
+    // T3.5.x: surface the connecting state as a pill above the form so
     // the user knows why the Create button hasn't responded yet.
-    // Reading the notifier (not watch) is fine — we're showing a
-    // single bit of derived state, not consuming the room object.
-    final connectionState = context.read<RoomNotifier>().connectionState;
+    // T3.5.x regression: this MUST be `watch`, not `read` — the
+    // connection state flips disconnected→connecting→connected during
+    // the createRoom round trip, and without subscribing the widget
+    // never rebuilds and the pill stays hidden for the whole handshake.
+    final connectionState = context.watch<RoomNotifier>().connectionState;
     final isConnecting = connectionState == SocketConnectionState.connecting;
 
     return Scaffold(
