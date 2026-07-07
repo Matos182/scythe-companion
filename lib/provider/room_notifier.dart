@@ -36,6 +36,7 @@ class RoomNotifier extends ChangeNotifier {
   Room _room = const Room();
   SocketError? _lastError;
   bool _justJoined = false;
+  bool _justBecameMyTurn = false;
 
   // ── Read surface for widgets ──────────────────────────────────────
 
@@ -50,6 +51,12 @@ class RoomNotifier extends ChangeNotifier {
   /// (create/join/rejoin success). The navigation listener in main.dart
   /// consumes it via [consumeJoinedFlag].
   bool get justJoined => _justJoined;
+
+  /// One-shot flag: set when a room update transitions to my turn and
+  /// it wasn't my turn before (T3.4). The composition root's listener
+  /// consumes it via [consumeJustBecameMyTurnFlag] to fire a local
+  /// notification when the app is backgrounded.
+  bool get justBecameMyTurn => _justBecameMyTurn;
 
   /// Am I seated in this room? (identity via playerId, D4 — not socket
   /// id, which changes on every reconnect)
@@ -112,14 +119,40 @@ class RoomNotifier extends ChangeNotifier {
     return was;
   }
 
+  /// One-shot consumer for the "just became my turn" flag (T3.4).
+  /// Returns true when a turn transition made it my turn since the last
+  /// call; clears the flag so the next poll is clean.
+  bool consumeJustBecameMyTurnFlag() {
+    final was = _justBecameMyTurn;
+    _justBecameMyTurn = false;
+    return was;
+  }
+
   void clearError() => _lastError = null;
 
   // ── Stream handlers ───────────────────────────────────────────────
 
   void _onRoom(Room room) {
+    // T3.4: detect the transition to my turn so the composition root
+    // can fire a local notification when the app is backgrounded.
+    // We compare against the previous room state — only a genuine
+    // transition (wasn't my turn → is my turn) sets the flag, not a
+    // refresh that keeps the same active player.
+    final wasMyTurn = _isMyTurnForRoom(_room);
+    final isNowMyTurn = _isMyTurnForRoom(room);
+    if (!wasMyTurn && isNowMyTurn) {
+      _justBecameMyTurn = true;
+    }
     _room = room;
     notifyListeners();
   }
+
+  /// Pure helper — checks if [room] makes it my turn without touching
+  /// the mutable `_room` field, so `_onRoom` can compare before/after.
+  bool _isMyTurnForRoom(Room room) =>
+      _repository.myPlayerId != null &&
+      room.turn.id.isNotEmpty &&
+      room.turn.id == _repository.myPlayerId;
 
   void _onJoined(Room room) {
     _justJoined = true;
