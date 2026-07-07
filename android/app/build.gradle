@@ -22,8 +22,19 @@ if (flutterVersionName == null) {
     flutterVersionName = '1.0'
 }
 
+// T4.2: Load release signing credentials from android/key.properties (gitignored).
+// The file is OPTIONAL — if absent the release build falls back to the debug
+// signing config so `flutter run --release` still works for local testing.
+// Matos generates key.properties once on his dev machine and never commits it
+// (C2 — credentials never enter the repo). See docs/RELEASE.md for the runbook.
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file('key.properties')
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
-    namespace "com.example.scythe"
+    namespace "com.matos.scythe_companion"
     compileSdkVersion 34
     ndkVersion flutter.ndkVersion
 
@@ -41,21 +52,53 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId "com.example.scythe"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
+        // T4.2: bumped from the placeholder `com.example.scythe` so the
+        // release APK lives under Matos's namespace on the Play Store /
+        // device app list. Friends who had a v0.3.x debug build installed
+        // will need to uninstall it first (different signing key + app id).
+        applicationId "com.matos.scythe_companion"
+        // minSdkVersion comes from flutter.minSdkVersion (currently 21 —
+        // required by flutter_local_notifications for foreground service
+        // notifications; documented in T3.4 hand-off).
         minSdkVersion flutter.minSdkVersion
         targetSdkVersion 33
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
     }
 
+    // T4.2: Real signing config sourced from key.properties. The config
+    // block is registered unconditionally so other Gradle tasks can
+    // introspect it; the build types use it only when the props file
+    // exists. See docs/RELEASE.md for the keystore-creation recipe.
+    signingConfigs {
+        release {
+            if (keystorePropertiesFile.exists()) {
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig signingConfigs.debug
+            // T4.2: When key.properties is present, sign with the release
+            // keystore. When absent (CI dev build, fresh clone), fall
+            // back to the debug keystore so `flutter run --release` still
+            // produces a working APK on a developer's machine.
+            signingConfig keystorePropertiesFile.exists() ?
+                    signingConfigs.release : signingConfigs.debug
+
+            // T4.2: R8 full-mode — minify (strip unused Dart/Java code)
+            // and shrink (drop unused resources). Requires proguard-rules
+            // in app/proguard-rules.pro to keep Flutter / plugin
+            // reflection happy. The default rules file ships empty —
+            // add keep rules per plugin as needed (see docs/RELEASE.md).
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'),
+                          'proguard-rules.pro'
         }
     }
 }

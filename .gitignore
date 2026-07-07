@@ -54,3 +54,12 @@ server/node_modules/
 CLAUDE.md
 AGENTS.md
 
+# T4.2: Android release-signing secrets — never commit (C2).
+# key.properties holds the keystore path + 3 passwords; the .jks /
+# .keystore files themselves are the actual signing keys.
+android/key.properties
+**/*.jks
+**/*.keystore
+# Also ignore any release-mapped.txt (R8 dictionary) we generate later.
+android/app/mapping.txt
+
