@@ -1,0 +1,24 @@
+# T4.2: signing-config template for a release APK.
+#
+# 1. Copy this file to `android/key.properties` (NOT committed — gitignored).
+# 2. Fill in the four values from your keystore. See docs/RELEASE.md
+#    "Create the keystore" for the keytool command that mints the .jks
+#    file referenced below.
+#
+# All four keys are required; an empty value will fail the release build
+# with a NullPointerException inside signingConfigs.release.
+
+# Absolute or relative (to android/) path to the keystore file.
+# Examples:
+#   storeFile=/home/matos/keystores/scythe-companion-release.jks
+#   storeFile=../keystores/scythe-companion-release.jks
+storeFile=/absolute/path/to/scythe-companion-release.jks
+
+# Password for the keystore itself (set when you ran keytool -genkey).
+storePassword=REPLACE_WITH_KEYSTORE_PASSWORD
+
+# Alias of the signing key inside the keystore (keytool -alias <this>).
+keyAlias=REPLACE_WITH_KEY_ALIAS
+
+# Password for that specific key (often equal to storePassword but can differ).
+keyPassword=REPLACE_WITH_KEY_PASSWORD
