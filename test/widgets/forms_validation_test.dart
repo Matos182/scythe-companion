@@ -108,4 +108,89 @@ void main() {
       expect(find.text(ConnectionStrings.connectingPill), findsOneWidget);
     });
   });
+
+  // T3.5.x regression: ConnectionPill depends on RoomNotifier
+  // *subscribing* (context.watch), not just reading. The T3.5 build
+  // used context.read in CreateRoom/JoinRoom, which means the widget
+  // never rebuilt when connectionState flipped disconnected→connecting
+  // → connected and the pill was invisible for the whole handshake.
+  group('CreateRoom — T3.5.x pill subscription regression', () {
+    testWidgets(
+        'shows the ConnectionPill when the socket enters the connecting state',
+        (tester) async {
+      final fake = FakeSocketAdapter()
+        // Hold the 'connect' event so the service stays in `connecting`
+        // long enough for the widget to render. Without this seam the
+        // fake fires 'connect' synchronously and the test would have to
+        // catch the pill mid-microtask (impossible with pump()).
+        ..pauseConnect = true;
+      final repository = _buildRepository(fake);
+      addTearDown(repository.dispose);
+      final notifier = RoomNotifier(repository);
+      addTearDown(notifier.dispose);
+
+      await tester.pumpWidget(
+        _pumpPage(
+          child: const CreateRoom(),
+          repository: repository,
+          notifier: notifier,
+        ),
+      );
+      await tester.pump();
+
+      // Sanity: while disconnected, the pill must be absent.
+      expect(find.byType(ConnectionPill), findsNothing,
+          reason: 'Disconnected state should not surface the pill');
+
+      // Drive the socket into `connecting` (the real flow from a
+      // user tap on the Create button). PauseConnect holds the
+      // 'connect' event so the service doesn't immediately flip to
+      // `connected`.
+      await repository.connect();
+      await tester.pump();
+
+      // The pill should now be rendered — this is the regression guard
+      // for the T3.5 read-not-watch bug.
+      expect(find.byType(ConnectionPill), findsOneWidget,
+          reason:
+              'Connecting state must rebuild CreateRoom and render the pill');
+
+      // Release the deferred connect event so the teardown doesn't
+      // leave a stuck handshake (would otherwise stay in connecting).
+      fake.releasePendingConnect();
+      await tester.pump();
+    });
+
+    testWidgets('hides the ConnectionPill again after the handshake completes',
+        (tester) async {
+      final fake = FakeSocketAdapter()..pauseConnect = true;
+      final repository = _buildRepository(fake);
+      addTearDown(repository.dispose);
+      final notifier = RoomNotifier(repository);
+      addTearDown(notifier.dispose);
+
+      await tester.pumpWidget(
+        _pumpPage(
+          child: const CreateRoom(),
+          repository: repository,
+          notifier: notifier,
+        ),
+      );
+      await tester.pump();
+
+      // Drive into connecting, then complete it.
+      await repository.connect();
+      await tester.pump();
+      expect(find.byType(ConnectionPill), findsOneWidget);
+
+      fake.releasePendingConnect();
+      await tester.pump();
+
+      // After the handshake the state becomes `connected` and the
+      // pill must disappear from the form.
+      expect(find.byType(ConnectionPill), findsNothing,
+          reason:
+              'Connected state must hide the pill so the form is usable again');
+    });
+  });
 }

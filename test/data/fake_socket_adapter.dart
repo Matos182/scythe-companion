@@ -23,6 +23,26 @@ class FakeSocketAdapter implements SocketAdapter {
   bool _connected = false;
   int connectCalls = 0;
 
+  /// T3.5.x: tests can set this before calling `connect()` to pause the
+  /// 'connect' event, leaving the socket in a 'connecting' window long
+  /// enough to assert mid-handshake UI states (e.g. ConnectionPill on
+  /// Create/Join — the original T3.5 read-not-watch bug). Pair with
+  /// [releasePendingConnect] to complete the handshake.
+  ///
+  /// Public so tests can write `fake.pauseConnect = true` before
+  /// triggering the handshake; public default `false` keeps all
+  /// existing fake-socket tests unchanged.
+  bool pauseConnect = false;
+
+  /// T3.5.x: complete the handshake after [connect] with `pauseConnect`
+  /// held. Fires the deferred 'connect' event so the socket service
+  /// transitions to connected.
+  void releasePendingConnect() {
+    if (!pauseConnect) return;
+    pauseConnect = false;
+    _fire('connect', null);
+  }
+
   /// Next socket id to assign on connect (socket.io mints a new id per
   /// connection — reconnects change it, tests must model that).
   String nextId = 'socket-1';
@@ -38,6 +58,7 @@ class FakeSocketAdapter implements SocketAdapter {
     connectCalls++;
     _connected = true;
     _id = nextId;
+    if (pauseConnect) return; // tests: hold the 'connect' event until released
     _fire('connect', null);
   }
 
