@@ -1,4 +1,4 @@
-package com.example.scythe
+package com.matos.scythe_companion
 
 import io.flutter.embedding.android.FlutterActivity
 
