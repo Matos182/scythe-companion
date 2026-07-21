@@ -21,25 +21,31 @@ void main() {
     final launcherActivities = document
         .findAllElements('activity')
         .where(
-          (activity) => activity.findElements('intent-filter').any(
-            (filter) =>
-                filter.findElements('action').any(
-                  (action) =>
-                      action.getAttribute(
-                        'name',
-                        namespace: androidNamespace,
-                      ) ==
-                      'android.intent.action.MAIN',
-                ) &&
-                filter.findElements('category').any(
-                  (category) =>
-                      category.getAttribute(
-                        'name',
-                        namespace: androidNamespace,
-                      ) ==
-                      'android.intent.category.LAUNCHER',
-                ),
-          ),
+          (activity) => activity
+              .findElements('intent-filter')
+              .any(
+                (filter) =>
+                    filter
+                        .findElements('action')
+                        .any(
+                          (action) =>
+                              action.getAttribute(
+                                'name',
+                                namespace: androidNamespace,
+                              ) ==
+                              'android.intent.action.MAIN',
+                        ) &&
+                    filter
+                        .findElements('category')
+                        .any(
+                          (category) =>
+                              category.getAttribute(
+                                'name',
+                                namespace: androidNamespace,
+                              ) ==
+                              'android.intent.category.LAUNCHER',
+                        ),
+              ),
         )
         .toList();
 
