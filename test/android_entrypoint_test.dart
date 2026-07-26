@@ -21,13 +21,9 @@ void main() {
     final launcherActivities = document
         .findAllElements('activity')
         .where(
-          (activity) => activity
-              .findElements('intent-filter')
-              .any(
+          (activity) => activity.findElements('intent-filter').any(
                 (filter) =>
-                    filter
-                        .findElements('action')
-                        .any(
+                    filter.findElements('action').any(
                           (action) =>
                               action.getAttribute(
                                 'name',
@@ -35,9 +31,7 @@ void main() {
                               ) ==
                               'android.intent.action.MAIN',
                         ) &&
-                    filter
-                        .findElements('category')
-                        .any(
+                    filter.findElements('category').any(
                           (category) =>
                               category.getAttribute(
                                 'name',
