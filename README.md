@@ -2,7 +2,6 @@
 
 [![Version](https://img.shields.io/badge/version-0.4.0-green)]()
 [![CI](https://github.com/Matos182/scythe-companion/actions/workflows/ci.yml/badge.svg)](https://github.com/Matos182/scythe-companion/actions/workflows/ci.yml)
-[![Latest release](https://img.shields.io/github/v/release/Matos182/scythe-companion?include_prereleases&label=latest%20APK)](https://github.com/Matos182/scythe-companion/releases/latest)
 
 Android companion app for physical Scythe games: offline final-score counting, plus online rooms with turn order, per-player turn timers, reconnect support, and local “your turn” notifications.
 
@@ -28,16 +27,11 @@ This is an unofficial helper app. It does not include copyrighted faction boards
 
 ## Install for players
 
-1. Open the latest release:
-   https://github.com/Matos182/scythe-companion/releases/latest
-2. Download the APK from the release assets.
-3. On Android, allow your browser or file manager to “install unknown apps”.
-4. Install the APK.
-5. Open Scythe Companion, tap the gear icon, and set the server URL Matos gives you, for example:
-   `https://scythe.example.com`
-6. Create a room and share the room code or lobby QR. Friends open Join Room, scan the QR, choose their faction/mat, and join.
+There is no prebuilt APK download. Players build the app from source (see **Build from source** below), then:
 
-If you installed an older debug build, uninstall it first. v0.4.0 uses the real Android application id `com.matos.scythe_companion`, so Android treats it as a different app from old `com.example.*` builds.
+1. Open Scythe Companion and tap the gear icon.
+2. Enter the server URL you configured on your own server (see **Self-host** below) — there is no public/default server.
+3. Create a room and share the room code or lobby QR. Friends open Join Room, scan the QR, choose their faction/mat, and join.
 
 ## Self-host in 10 minutes
 
