@@ -1,58 +1,126 @@
+# Scythe Companion
 
-# Scythe Companion App
-
-[![Version](https://img.shields.io/badge/Version-0.3.5-green)]()
+[![Version](https://img.shields.io/badge/version-0.4.0-green)]()
 [![CI](https://github.com/Matos182/scythe-companion/actions/workflows/ci.yml/badge.svg)](https://github.com/Matos182/scythe-companion/actions/workflows/ci.yml)
-[![Discord](https://img.shields.io/badge/Discord-server-red)](https://discord.com/invite/qyG3fsxB)
+[![Latest release](https://img.shields.io/github/v/release/Matos182/scythe-companion?include_prereleases&label=latest%20APK)](https://github.com/Matos182/scythe-companion/releases/latest)
 
-Welcome to the Scythe Companion App repository! This project offers an expanded feature set building upon the functionality of the original Scythe Coin Calculator, enhancing the experience for players of the renowned board game, Scythe. Designed to streamline coin calculations and manage turn timers, this Android application enables players to delve deeper into strategic gameplay with ease.
+Android companion app for physical Scythe games: offline final-score counting, plus online rooms with turn order, per-player turn timers, reconnect support, and local “your turn” notifications.
 
-This app serves as a supplementary tool for physical multiplayer games of Scythe. While designed to optimize multiplayer experiences, it may not be fully compatible for solo play against the Automa.
+This is an unofficial helper app. It does not include copyrighted faction boards, encounter cards, rule text, or expansion content.
 
-<p align="center" > 
-<img align="center" src="./assets/screenshot-2.png" />
-<img align="center" src="./assets/screenshot-1.png" />
-<img align="center" src="./assets/screenshot-3.png" /></p>
-<!---![plot](./assets/screenshot-1.png) ![plot](./assets/screenshot-2.png) ![plot](./assets/screenshot-3.png)
---->
+<p align="center">
+  <img src="./assets/screenshot-2.png" width="240" alt="Scythe Companion home screen" />
+  <img src="./assets/screenshot-1.png" width="240" alt="Score calculator screen" />
+  <img src="./assets/screenshot-3.png" width="240" alt="Results screen" />
+</p>
 
-## Features
+## What it does
 
-- **Homepage Interface**: The intuitive homepage interface provides options for simple calculations, room creation, room joining, and final result calculation, utilizing the functionalities of the previous Scythe Coin Calculator.
+- Offline coin calculator for final scoring.
+- Multi-player score table with winner/tie ranking.
+- Online game rooms backed by a Node/socket.io server.
+- Server-resolved faction-wheel turn order.
+- Per-player remaining turn timers, pause/resume, and pass-turn flow.
+- Presence and reconnect: players can drop and rejoin with their saved seat.
+- Runtime server URL setting, so the APK does not need rebuilding for a new host.
+- QR room sharing from the lobby and in-app QR scanning on the join screen.
+- Android local notification when it becomes your turn while the app is backgrounded.
 
-- **Scythe Coin Calculator**: This section allows users to input various variables for each player, such as their name, Popularity, Lands, Resources accumulated, Stars, Player's coins, and building reward coins. Upon inputting these values, users can simply click the convert button to initiate the conversion process and calculate the total coin reward, prominently displayed at the top of the page. The application supports up to seven players, with final results viewable on a dedicated final page. A refresh button in the AppBar enables convenient resetting of all parameters.
+## Install for players
 
-- **Room Creation and Joining**: The client-side functionality allows users to create and join rooms. Upon room creation, users input their name, faction, and player mat sorting. Additionally, room creators can set the individual turn global timer. Room joining is facilitated through a unique room ID generated upon creation.
+1. Open the latest release:
+   https://github.com/Matos182/scythe-companion/releases/latest
+2. Download the APK from the release assets.
+3. On Android, allow your browser or file manager to “install unknown apps”.
+4. Install the APK.
+5. Open Scythe Companion, tap the gear icon, and set the server URL Matos gives you, for example:
+   `https://scythe.example.com`
+6. Create a room and share the room code or lobby QR. Friends open Join Room, scan the QR, choose their faction/mat, and join.
 
-- **Gameplay Management**: Once a room is composed, the creator assumes the role of the party leader and can initiate the game. The server resolves turn order, and during gameplay, the current turn player can press a button on their device to pass the turn. A decrementing timer tracks the turn player’s time in seconds, with a pause feature available for game interruptions.
+If you installed an older debug build, uninstall it first. v0.4.0 uses the real Android application id `com.matos.scythe_companion`, so Android treats it as a different app from old `com.example.*` builds.
 
+## Self-host in 10 minutes
 
-## Installation
+The production server is a Docker Compose stack:
 
-> This project's code was built for apk. Share your experiences with other builds!
+```text
+Internet → Caddy (:443 HTTPS) → Node socket.io server (:3000 inside Docker)
+```
 
-> The server needs to be running for the App to work properly.
+Quick path:
 
-1. Clone the repository to your local machine using: ```git clone https://github.com/Matos182/scythe-companion.git```
-2. Create a [Mongoose](https://www.mongodb.com/) account and insert credentials in `./server/index.js` file.
-3. Insert the public IPAddress of the host server in `./lib/resources/socket_client.dart` file.
-4. In the project folder, open a terminal and upgrade your Flutter dependencies using: ```flutter pub get```
-5. Run Flutter Icons: ```flutter pub run flutter_launcher_icons:main```
-6. Compile the code using Flutter: ```flutter build apk```
-7. Install and update dependencies on [Node.js](https://nodejs.org/en).
-8. Run the `index.js` server, opening a terminal in `./server/` folder and run: ```npm run start```
+```bash
+git clone https://github.com/Matos182/scythe-companion.git
+cd scythe-companion
+cp server/.env.example server/.env
+printf 'DOMAIN=scythe.yourdomain.com\n' > .env
+# edit server/.env: set CORS_ORIGIN=https://scythe.yourdomain.com
+docker compose up -d --build
+curl https://scythe.yourdomain.com/healthz
+```
 
-As the final product requires the server to work properly, no binary file is provided in this release.
+Full deployment guide: [docs/DEPLOY.md](./docs/DEPLOY.md).
 
-## Technology Stack
+For a LAN game without TLS, run the server directly and point the app at `http://<laptop-ip>:3000`:
 
-- **Server-side**: Utilizes Node.js to control the server-side operations, with MongoDB employed as the database solution.
+```bash
+cd server
+npm ci
+npm start
+```
 
-- **Client-side**: Developed using Dart and Flutter, offering cross-platform compatibility for Android devices.
+## Build from source
 
-## Contributing
+Requirements:
 
-Contributions are welcome! If you have suggestions for new features, improvements, or bug fixes, feel free to open an issue or submit a pull request.
+- Flutter/Dart stable.
+- Android SDK for Android builds.
+- Node.js 22+ for the server.
+
+Flutter app:
+
+```bash
+flutter pub get
+dart format --set-exit-if-changed .
+flutter analyze
+flutter test
+flutter build apk --debug
+```
+
+Server:
+
+```bash
+cd server
+npm ci
+npm run lint
+npm test
+npm start
+```
+
+Signed release APKs need a private keystore. The model-written runbook is in [docs/RELEASE.md](./docs/RELEASE.md); real keystores and passwords stay out of the repo.
+
+## Architecture sketch
+
+- Flutter UI uses Provider with repository/notifier seams.
+- Widgets do not own sockets or timers.
+- `SocketService` owns socket.io handlers and translates wire events into typed streams.
+- `GameRepository` owns player identity, saved sessions, runtime server URL changes, and reconnect orchestration.
+- `RoomNotifier` exposes room state to pages and folds timer ticks into typed models.
+- The Node server keeps rooms in memory with a TTL sweeper; no MongoDB is required.
+- Timer state is server-authoritative: one timer handle per room, one active countdown per current player.
+- `/healthz` exposes `protocolVersion`; the client probes it before connecting so stale APK/server combinations fail loudly.
+
+More details:
+
+- Wire protocol: [docs/PROTOCOL.md](./docs/PROTOCOL.md)
+- Deployment: [docs/DEPLOY.md](./docs/DEPLOY.md)
+- Release process: [docs/RELEASE.md](./docs/RELEASE.md)
+- Changelog: [CHANGELOG.md](./CHANGELOG.md)
+- Target design history: [orchestra/02_ARCHITECTURE.md](./orchestra/02_ARCHITECTURE.md)
+
+## Project history and coordination docs
+
+The `orchestra/` directory is living project history for the multi-model development relay: audit, roadmap, decisions, progress board, and hand-off notes. It is useful context for contributors, but it is not player-facing documentation.
 
 ## License
 
@@ -60,25 +128,17 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## Acknowledgements
 
--   Inspired by the board game [Scythe](https://stonemaiergames.com/games/scythe/) created by Jamey Stegmaier.
--   App is written with Dart and built with Flutter.
--   The server is written in JavaScript and operated on a [Node.js](https://nodejs.org/en) server, using [MongoDB](https://www.mongodb.com/).
+Inspired by Scythe, designed by Jamey Stegmaier and published by Stonemaier Games. Scythe Companion is an unofficial fan-made utility.
 
-## Internal Documentation
-
-This repository is maintained as part of a multi-model development relay.
-Internal coordination documents (audit, architecture, roadmap, decisions,
-and progress) live in the [`orchestra/`](./orchestra/) directory.
-
-## Buy me a Coffee
+## Support
 
 Thank you!
 
 XMR Address:
-46cX3Gw71JyAoP91cde3YgFPV4uDopiSS2TTdsZyjk4nGy5SuYvBSeoYwscnfr57eN6b7Pp5sZMzrHNhjs22vHESBD2bRrz
+`46cX3Gw71JyAoP91cde3YgFPV4uDopiSS2TTdsZyjk4nGy5SuYvBSeoYwscnfr57eN6b7Pp5sZMzrHNhjs22vHESBD2bRrz`
 
 BNB Smart Chain Address:
-0x363365b8E01f4e6EbBc2630467c3354b4b74EC0C
+`0x363365b8E01f4e6EbBc2630467c3354b4b74EC0C`
 
 Solana Address:
-1xDA48D8LBd3fYeUXuvVx6VNTHSe8BZCevhDb8d3Jcf
+`1xDA48D8LBd3fYeUXuvVx6VNTHSe8BZCevhDb8d3Jcf`
