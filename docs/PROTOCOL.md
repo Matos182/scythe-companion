@@ -4,10 +4,10 @@
 **Transport:** socket.io (client 3.x ↔ server 4.x)  
 **Last updated:** 2026-07-05 (T2.4 — error envelope, payload validation, rate limiting)
 
-> A `protocolVersion` field is included in the `/healthz` HTTP response
-> and in the handshake. If the client's expected version differs, it must
-> refuse to connect and show an upgrade prompt. Bump the version when any
-> event name or payload shape changes.
+> A `protocolVersion` field is included in the `/healthz` HTTP response.
+> The client probes `/healthz` before opening the socket; if its expected
+> version differs, it refuses to connect and shows an upgrade prompt. Bump
+> the version when any event name or payload shape changes.
 
 ---
 

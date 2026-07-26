@@ -16,11 +16,11 @@
 /// returns `(s, r)`. Tested in `test/utils/qr_payload_test.dart`.
 library;
 
-/// Custom URI scheme so a scanned QR can launch the app via
-/// Android intent-filter (`android/app/src/main/AndroidManifest.xml`,
-/// added in T3.2) and iOS equivalent. Picked over `https://` to keep
-/// the payload obviously app-internal and to avoid registering a real
-/// domain we don't own.
+/// Custom URI scheme used by the in-app scanner. External camera-app
+/// launch is deliberately not wired yet (no Android VIEW intent-filter
+/// or app_links handler), but the payload shape leaves that path open.
+/// Picked over `https://` to keep the payload obviously app-internal and
+/// to avoid registering a real domain we don't own.
 const String scytheScheme = 'scythe';
 const String _joinHost = 'join';
 

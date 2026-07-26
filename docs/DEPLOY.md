@@ -163,11 +163,12 @@ obtaining the cert. Check `docker compose logs caddy`.
 In the app (once T3.2 lands the settings screen), set the server URL to:
 
 ```
-wss://scythe.yourdomain.com
+https://scythe.yourdomain.com
 ```
 
-The socket.io client connects over `wss://` (TLS), Caddy upgrades the
-WebSocket, and the Node server handles the connection.
+Use the HTTPS base URL in the app. The socket.io client starts from that
+URL and upgrades the transport to secure WebSocket (`wss://`) through
+Caddy; the same base URL is also used for the `/healthz` protocol check.
 
 ---
 
@@ -219,7 +220,7 @@ The server listens on `:3000`. The Flutter app connects via
 - Node container not ready? `docker compose logs server`.
 - Healthcheck failing? `docker inspect scythe-server --format='{{.State.Health.Status}}'`.
 
-**WebSocket connection refused (wss://):**
+**WebSocket connection refused:**
 - Caddy handles WebSocket upgrade automatically. Check that your
   domain in `Caddyfile` matches the one the client connects to.
 - CORS: `CORS_ORIGIN` in `server/.env` must match the app's origin
