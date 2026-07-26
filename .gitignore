@@ -63,3 +63,6 @@ android/key.properties
 # Also ignore any release-mapped.txt (R8 dictionary) we generate later.
 android/app/mapping.txt
 
+
+# Agent coordination — local only
+orchestra/
