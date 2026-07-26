@@ -19,6 +19,16 @@
 -keep class io.flutter.**  { *; }
 -keep class io.flutter.plugins.**  { *; }
 
+# Play Core / deferred-components: Flutter's PlayStoreDeferredComponentManager
+# references com.google.android.play.core.** classes that are NOT on the
+# classpath unless the app uses Play Feature Delivery (we don't). R8 full-mode
+# aborts with "Missing class" ERRORS on these. Keep rules cannot fix missing
+# classes — silence the warnings (standard Flutter workaround, flutter/flutter
+# issue #60246). Harmless: the code path is never exercised without deferred
+# components.
+-dontwarn com.google.android.play.core.**
+-dontwarn io.flutter.embedding.engine.deferredcomponents.**
+
 # --- Native methods (JNI) ----------------------------------------------
 # Anything marked `native` must not be renamed — R8 can't follow the
 # symbol across the JNI boundary.
