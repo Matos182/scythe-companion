@@ -37,6 +37,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -81,6 +87,9 @@ jobs:
 
       - name: Analyze
         run: flutter analyze
+
+      - name: Validate Android launcher entrypoint
+        run: flutter test test/android_entrypoint_test.dart
 
       - name: Run tests
         run: flutter test
