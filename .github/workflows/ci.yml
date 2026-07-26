@@ -66,21 +66,6 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # lib/env/env.dart is gitignored. Until T3.2 deletes it, write a stub so
-      # anything that imports it (currently lib/resources/socket_client.dart)
-      # compiles on CI. Skip if lib/env/ already exists — never clobber a real
-      # file someone might have committed later.
-      - name: Ensure lib/env/env.dart stub exists (T3.2 will delete)
-        run: |
-          if [ ! -f lib/env/env.dart ]; then
-            mkdir -p lib/env
-            cat > lib/env/env.dart <<'EOF'
-            // CI-only stub. Real file is gitignored (local server IP).
-            // Removed by T3.2 — runtime server config replaces this.
-            const String ipaddress2 = 'localhost';
-            EOF
-          fi
-
       - name: Verify formatting
         run: dart format --set-exit-if-changed .
 

@@ -12,6 +12,13 @@ import '../pages/settings.dart';
 import '../pages/simple.dart';
 import './route_const.dart';
 
+/// Router wiring for the whole app (go_router, D3/E4).
+///
+/// One nested tree: the offline-calculator pages (`simple`, `game`,
+/// `addPlayer`) hang off the home `/` route; the multiplayer and settings
+/// pages (`/create`, `/join`, `/result`, `/settings`) are top-level.
+/// Navigation is always by *name* (`context.goNamed(RouteNames.x)`) so the
+/// paths stay in one place — see `route_const.dart`.
 class MyRouter {
   final GoRouter router = GoRouter(
       initialLocation: '/',
