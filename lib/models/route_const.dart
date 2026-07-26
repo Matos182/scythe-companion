@@ -1,3 +1,10 @@
+// SPDX-License-Identifier: MIT
+
+/// Named route constants for `go_router` (see `route_config.dart`).
+///
+/// Centralising the name strings avoids typo-prone literals scattered
+/// across `context.goNamed(...)` call sites — a rename here propagates at
+/// compile time instead of failing silently on a mistyped string.
 class RouteNames {
   static const String join = 'join';
   static const String result = 'result';

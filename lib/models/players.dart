@@ -7,8 +7,8 @@ library;
 ///
 /// Renamed from `Players` (T1.2) to avoid confusion with the multiplayer
 /// [Player] model in `domain/models/player.dart`. This class is mutable
-/// controllers before computing the final `result`.
-
+/// and positional — the form pages write straight into its fields from
+/// their text controllers before computing the final `result`.
 class ScoreEntry {
   String name = '';
   int popularity = 0;
