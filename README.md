@@ -112,10 +112,6 @@ More details:
 - Changelog: [CHANGELOG.md](./CHANGELOG.md)
 - Target design history: [orchestra/02_ARCHITECTURE.md](./orchestra/02_ARCHITECTURE.md)
 
-## Project history and coordination docs
-
-The `orchestra/` directory is living project history for the multi-model development relay: audit, roadmap, decisions, progress board, and hand-off notes. It is useful context for contributors, but it is not player-facing documentation.
-
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
