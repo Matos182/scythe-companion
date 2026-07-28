@@ -1,5 +1,18 @@
 # Release Guide — Scythe Companion Android APK
 
+> ## ⚠️ Not the current distribution path
+>
+> As of 2026-07-28 the project distributes **build-from-source only**
+> (DECISIONS **R1**): there is no prebuilt APK, no GitHub Release, and no
+> keystore. Every player clones the repo and builds the app themselves —
+> see the README's *Build from source* section, and `orchestra/PLAYTEST-01.md`
+> for the game-night checklist.
+>
+> This runbook is kept intact and accurate for the day that changes (a Play
+> Store submission, or handing a signed APK to non-technical friends). Until
+> then **you do not need to do anything in this file** — the steps below are
+> not blocking any release. `docs/DEPLOY.md` is the runbook that matters now.
+
 This runbook walks you (Matos) through cutting a signed release APK
 and publishing it on the GitHub Releases page so friends can install
 it without rebuilding. **Models never touch the keystore or push

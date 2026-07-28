@@ -8,11 +8,11 @@
 # pull the latest debug build off any CI run without a local Android toolchain.
 #
 # Notes:
-#   - lib/env/env.dart is gitignored (per .gitignore: /lib/env/) and contains
-#     a local server IP. Until T3.2 deletes lib/env/ wholesale, CI synthesizes
-#     a stub so `flutter analyze` + `flutter test` match the documented
-#     baseline. The stub is only written if the folder is missing — re-runs
-#     don't trample a real file checked in by a future commit.
+#   - There is no lib/env/env.dart stub step any more. T3.1 removed the last
+#     import of lib/env/ and 230a28b deleted the step that used to synthesize
+#     it (it was both dead code and broken — an indented heredoc delimiter,
+#     which is why the first real CI run failed). Nothing in lib/ imports
+#     lib/env/; the folder is still gitignored and may exist locally.
 #   - Concurrency cancel-in-progress keeps CI cheap when a branch is force-
 #     pushed; the master branch runs to completion so the badge stays truthful.
 
