@@ -9,6 +9,7 @@ import '../utils/colors.dart';
 import '../utils/qr_payload.dart';
 import '../utils/strings.dart';
 import '../widgets/connection_pill.dart';
+import '../widgets/scrollable_center_column.dart';
 import '../widgets/widgets.dart';
 import 'qr_scanner.dart';
 
@@ -145,122 +146,117 @@ class _JoinRoomState extends State<JoinRoom> {
             fit: BoxFit.cover,
           ),
         ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              if (isConnecting) const ConnectionPill(),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 50, 20, 7),
-                child: TextField(
-                  controller: _playerName,
-                  style: const TextStyle(color: buttonTextColor),
-                  decoration: InputDecoration(
-                    hintText: 'Insert Player Name',
-                    hintStyle: const TextStyle(color: buttonTextColor),
-                    filled: true,
-                    fillColor: bgColorBar,
-                    focusedBorder: border,
-                    enabledBorder: border,
-                  ),
-                  keyboardType: TextInputType.text,
+        child: ScrollableCenterColumn(
+          children: <Widget>[
+            if (isConnecting) const ConnectionPill(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 50, 20, 7),
+              child: TextField(
+                controller: _playerName,
+                style: const TextStyle(color: buttonTextColor),
+                decoration: InputDecoration(
+                  hintText: 'Insert Player Name',
+                  hintStyle: const TextStyle(color: buttonTextColor),
+                  filled: true,
+                  fillColor: bgColorBar,
+                  focusedBorder: border,
+                  enabledBorder: border,
                 ),
+                keyboardType: TextInputType.text,
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 7),
-                child: TextField(
-                  controller: _roomId,
-                  style: const TextStyle(color: buttonTextColor),
-                  decoration: InputDecoration(
-                    hintText: 'Insert Room ID',
-                    hintStyle: const TextStyle(color: buttonTextColor),
-                    filled: true,
-                    fillColor: bgColorBar,
-                    focusedBorder: border,
-                    enabledBorder: border,
-                  ),
-                  keyboardType: TextInputType.text,
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 7),
+              child: TextField(
+                controller: _roomId,
+                style: const TextStyle(color: buttonTextColor),
+                decoration: InputDecoration(
+                  hintText: 'Insert Room ID',
+                  hintStyle: const TextStyle(color: buttonTextColor),
+                  filled: true,
+                  fillColor: bgColorBar,
+                  focusedBorder: border,
+                  enabledBorder: border,
                 ),
+                keyboardType: TextInputType.text,
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 7),
-                child: DropdownButtonFormField<String>(
-                  decoration: InputDecoration(
-                    helperText: 'Player Faction',
-                    helperStyle: const TextStyle(color: yourTurnText),
-                    filled: true,
-                    fillColor: bgColorBar,
-                    focusedBorder: border,
-                    enabledBorder: border,
-                  ),
-                  initialValue: _selectedPlayerFaction,
-                  items: playerFactions
-                      .map((item) => DropdownMenuItem<String>(
-                            value: item,
-                            child: Text(item.toString(),
-                                style: const TextStyle(color: buttonTextColor)),
-                          ))
-                      .toList(),
-                  onChanged: (item) =>
-                      setState(() => _selectedPlayerFaction = item.toString()),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 7),
+              child: DropdownButtonFormField<String>(
+                decoration: InputDecoration(
+                  helperText: 'Player Faction',
+                  helperStyle: const TextStyle(color: yourTurnText),
+                  filled: true,
+                  fillColor: bgColorBar,
+                  focusedBorder: border,
+                  enabledBorder: border,
                 ),
+                initialValue: _selectedPlayerFaction,
+                items: playerFactions
+                    .map((item) => DropdownMenuItem<String>(
+                          value: item,
+                          child: Text(item.toString(),
+                              style: const TextStyle(color: buttonTextColor)),
+                        ))
+                    .toList(),
+                onChanged: (item) =>
+                    setState(() => _selectedPlayerFaction = item.toString()),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 7),
-                child: DropdownButtonFormField<String>(
-                  decoration: InputDecoration(
-                    helperText: 'Player Mat Number',
-                    helperStyle: const TextStyle(color: yourTurnText),
-                    filled: true,
-                    fillColor: bgColorBar,
-                    focusedBorder: border,
-                    enabledBorder: border,
-                  ),
-                  initialValue: _selectedPlayerMat,
-                  items: playerMats
-                      .map((item) => DropdownMenuItem<String>(
-                            value: item,
-                            child: Text(item.toString(),
-                                style: const TextStyle(color: buttonTextColor)),
-                          ))
-                      .toList(),
-                  onChanged: (item) =>
-                      setState(() => _selectedPlayerMat = item.toString()),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 7),
+              child: DropdownButtonFormField<String>(
+                decoration: InputDecoration(
+                  helperText: 'Player Mat Number',
+                  helperStyle: const TextStyle(color: yourTurnText),
+                  filled: true,
+                  fillColor: bgColorBar,
+                  focusedBorder: border,
+                  enabledBorder: border,
                 ),
+                initialValue: _selectedPlayerMat,
+                items: playerMats
+                    .map((item) => DropdownMenuItem<String>(
+                          value: item,
+                          child: Text(item.toString(),
+                              style: const TextStyle(color: buttonTextColor)),
+                        ))
+                    .toList(),
+                onChanged: (item) =>
+                    setState(() => _selectedPlayerMat = item.toString()),
               ),
-              Padding(
-                padding: const EdgeInsets.all(2.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ElevatedButton(
-                      onPressed: isConnecting ? null : _onJoinPressed,
-                      style: const ButtonStyle(
-                        elevation: WidgetStatePropertyAll(7),
-                        backgroundColor: WidgetStatePropertyAll(bgColorBar),
-                        foregroundColor:
-                            WidgetStatePropertyAll(buttonTextColor),
-                        fixedSize: WidgetStatePropertyAll(Size(150, 50)),
-                      ),
-                      child: const Text("Join Room"),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(2.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton(
+                    onPressed: isConnecting ? null : _onJoinPressed,
+                    style: const ButtonStyle(
+                      elevation: WidgetStatePropertyAll(7),
+                      backgroundColor: WidgetStatePropertyAll(bgColorBar),
+                      foregroundColor: WidgetStatePropertyAll(buttonTextColor),
+                      fixedSize: WidgetStatePropertyAll(Size(150, 50)),
                     ),
-                    const SizedBox(width: 12),
-                    ElevatedButton(
-                      onPressed: _scanQr,
-                      style: const ButtonStyle(
-                        elevation: WidgetStatePropertyAll(7),
-                        backgroundColor: WidgetStatePropertyAll(bgColorBar),
-                        foregroundColor:
-                            WidgetStatePropertyAll(buttonTextColor),
-                        fixedSize: WidgetStatePropertyAll(Size(150, 50)),
-                      ),
-                      child: const Text("Scan QR"),
+                    child: const Text("Join Room"),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton(
+                    onPressed: _scanQr,
+                    style: const ButtonStyle(
+                      elevation: WidgetStatePropertyAll(7),
+                      backgroundColor: WidgetStatePropertyAll(bgColorBar),
+                      foregroundColor: WidgetStatePropertyAll(buttonTextColor),
+                      fixedSize: WidgetStatePropertyAll(Size(150, 50)),
                     ),
-                  ],
-                ),
+                    child: const Text("Scan QR"),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

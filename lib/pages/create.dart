@@ -10,6 +10,7 @@ import '../utils/colors.dart';
 import '../utils/strings.dart';
 import '../provider/room_notifier.dart';
 import '../widgets/connection_pill.dart';
+import '../widgets/scrollable_center_column.dart';
 import '../widgets/widgets.dart';
 
 class CreateRoom extends StatefulWidget {
@@ -108,111 +109,108 @@ class _CreateRoomState extends State<CreateRoom> {
             fit: BoxFit.cover,
           ),
         ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              if (isConnecting) const ConnectionPill(),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 50),
-                child: TextField(
-                  controller: _playerName,
-                  style: const TextStyle(color: buttonTextColor),
-                  decoration: InputDecoration(
-                    hintText: 'Insert Player Name',
-                    hintStyle: const TextStyle(color: buttonTextColor),
-                    filled: true,
-                    fillColor: bgColorBar,
-                    focusedBorder: border,
-                    enabledBorder: border,
-                  ),
-                  keyboardType: TextInputType.text,
+        child: ScrollableCenterColumn(
+          children: <Widget>[
+            if (isConnecting) const ConnectionPill(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 50),
+              child: TextField(
+                controller: _playerName,
+                style: const TextStyle(color: buttonTextColor),
+                decoration: InputDecoration(
+                  hintText: 'Insert Player Name',
+                  hintStyle: const TextStyle(color: buttonTextColor),
+                  filled: true,
+                  fillColor: bgColorBar,
+                  focusedBorder: border,
+                  enabledBorder: border,
                 ),
+                keyboardType: TextInputType.text,
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 15),
-                child: DropdownButtonFormField<String>(
-                  decoration: InputDecoration(
-                    helperText: 'Player Faction',
-                    helperStyle: const TextStyle(color: yourTurnText),
-                    filled: true,
-                    fillColor: bgColorBar,
-                    focusedBorder: border,
-                    enabledBorder: border,
-                  ),
-                  initialValue: _selectedPlayerFaction,
-                  items: playerFactions
-                      .map((item) => DropdownMenuItem<String>(
-                            value: item,
-                            child: Text(item,
-                                style: const TextStyle(color: buttonTextColor)),
-                          ))
-                      .toList(),
-                  onChanged: (item) =>
-                      setState(() => _selectedPlayerFaction = item.toString()),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 15),
+              child: DropdownButtonFormField<String>(
+                decoration: InputDecoration(
+                  helperText: 'Player Faction',
+                  helperStyle: const TextStyle(color: yourTurnText),
+                  filled: true,
+                  fillColor: bgColorBar,
+                  focusedBorder: border,
+                  enabledBorder: border,
                 ),
+                initialValue: _selectedPlayerFaction,
+                items: playerFactions
+                    .map((item) => DropdownMenuItem<String>(
+                          value: item,
+                          child: Text(item,
+                              style: const TextStyle(color: buttonTextColor)),
+                        ))
+                    .toList(),
+                onChanged: (item) =>
+                    setState(() => _selectedPlayerFaction = item.toString()),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 15),
-                child: DropdownButtonFormField<String>(
-                  decoration: InputDecoration(
-                    helperText: 'Player Mat Number',
-                    helperStyle: const TextStyle(color: yourTurnText),
-                    filled: true,
-                    fillColor: bgColorBar,
-                    focusedBorder: border,
-                    enabledBorder: border,
-                  ),
-                  initialValue: _selectedPlayerMat,
-                  items: playerMats
-                      .map((item) => DropdownMenuItem<String>(
-                            value: item,
-                            child: Text(item,
-                                style: const TextStyle(color: buttonTextColor)),
-                          ))
-                      .toList(),
-                  onChanged: (item) =>
-                      setState(() => _selectedPlayerMat = item.toString()),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 15),
+              child: DropdownButtonFormField<String>(
+                decoration: InputDecoration(
+                  helperText: 'Player Mat Number',
+                  helperStyle: const TextStyle(color: yourTurnText),
+                  filled: true,
+                  fillColor: bgColorBar,
+                  focusedBorder: border,
+                  enabledBorder: border,
                 ),
+                initialValue: _selectedPlayerMat,
+                items: playerMats
+                    .map((item) => DropdownMenuItem<String>(
+                          value: item,
+                          child: Text(item,
+                              style: const TextStyle(color: buttonTextColor)),
+                        ))
+                    .toList(),
+                onChanged: (item) =>
+                    setState(() => _selectedPlayerMat = item.toString()),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
-                child: DropdownButtonFormField<String>(
-                  decoration: InputDecoration(
-                    helperText: "Individual Player's Turn Time",
-                    helperStyle: const TextStyle(color: yourTurnText),
-                    filled: true,
-                    fillColor: bgColorBar,
-                    focusedBorder: border,
-                    enabledBorder: border,
-                  ),
-                  initialValue: _selectedPlayerTimer,
-                  items: playerTimers
-                      .map((item) => DropdownMenuItem<String>(
-                            value: item,
-                            child: Text(item,
-                                style: const TextStyle(color: buttonTextColor)),
-                          ))
-                      .toList(),
-                  onChanged: (item) =>
-                      setState(() => _selectedPlayerTimer = item.toString()),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
+              child: DropdownButtonFormField<String>(
+                decoration: InputDecoration(
+                  helperText: "Individual Player's Turn Time",
+                  helperStyle: const TextStyle(color: yourTurnText),
+                  filled: true,
+                  fillColor: bgColorBar,
+                  focusedBorder: border,
+                  enabledBorder: border,
                 ),
+                initialValue: _selectedPlayerTimer,
+                items: playerTimers
+                    .map((item) => DropdownMenuItem<String>(
+                          value: item,
+                          child: Text(item,
+                              style: const TextStyle(color: buttonTextColor)),
+                        ))
+                    .toList(),
+                onChanged: (item) =>
+                    setState(() => _selectedPlayerTimer = item.toString()),
               ),
-              Padding(
-                padding: const EdgeInsets.all(2.0),
-                child: ElevatedButton(
-                  onPressed: isConnecting ? null : _onCreatePressed,
-                  style: const ButtonStyle(
-                    elevation: WidgetStatePropertyAll(7),
-                    backgroundColor: WidgetStatePropertyAll(bgColorBar),
-                    foregroundColor: WidgetStatePropertyAll(buttonTextColor),
-                    fixedSize: WidgetStatePropertyAll(Size(150, 50)),
-                  ),
-                  child: const Text("Create Room"),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(2.0),
+              child: ElevatedButton(
+                onPressed: isConnecting ? null : _onCreatePressed,
+                style: const ButtonStyle(
+                  elevation: WidgetStatePropertyAll(7),
+                  backgroundColor: WidgetStatePropertyAll(bgColorBar),
+                  foregroundColor: WidgetStatePropertyAll(buttonTextColor),
+                  fixedSize: WidgetStatePropertyAll(Size(150, 50)),
                 ),
+                child: const Text("Create Room"),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
