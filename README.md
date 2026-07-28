@@ -91,7 +91,7 @@ npm test
 npm start
 ```
 
-Signed release APKs need a private keystore. The model-written runbook is in [docs/RELEASE.md](./docs/RELEASE.md); real keystores and passwords stay out of the repo.
+Signed release APKs are **not** how this project is distributed — everyone builds from source, as above. A runbook for signing and publishing one is kept in [docs/RELEASE.md](./docs/RELEASE.md) for a possible future store release; real keystores and passwords stay out of the repo.
 
 ## Architecture sketch
 
@@ -108,9 +108,8 @@ More details:
 
 - Wire protocol: [docs/PROTOCOL.md](./docs/PROTOCOL.md)
 - Deployment: [docs/DEPLOY.md](./docs/DEPLOY.md)
-- Release process: [docs/RELEASE.md](./docs/RELEASE.md)
+- Release process (not the current distribution path): [docs/RELEASE.md](./docs/RELEASE.md)
 - Changelog: [CHANGELOG.md](./CHANGELOG.md)
-- Target design history: [orchestra/02_ARCHITECTURE.md](./orchestra/02_ARCHITECTURE.md)
 
 ## License
 
