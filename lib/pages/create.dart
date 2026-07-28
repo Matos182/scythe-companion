@@ -24,7 +24,6 @@ class _CreateRoomState extends State<CreateRoom> {
   String _selectedPlayerFaction = 'Crimea';
   String _selectedPlayerMat = '1';
   String _selectedPlayerTimer = '15:00';
-  late int _secondsPlayerTimer;
 
   bool _nicknameLoaded = false;
 
@@ -65,20 +64,11 @@ class _CreateRoomState extends State<CreateRoom> {
       );
       return;
     }
-    if (_selectedPlayerTimer == '15:00') {
-      _secondsPlayerTimer = 900;
-    } else if (_selectedPlayerTimer == '20:00') {
-      _secondsPlayerTimer = 1200;
-    } else if (_selectedPlayerTimer == '25:00') {
-      _secondsPlayerTimer = 1500;
-    } else if (_selectedPlayerTimer == '30:00') {
-      _secondsPlayerTimer = 1800;
-    }
     context.read<RoomNotifier>().createRoom(
           nickname: nickname,
           faction: _selectedPlayerFaction,
           mat: _selectedPlayerMat,
-          timerSec: _secondsPlayerTimer,
+          timerSec: playerTimerSeconds(_selectedPlayerTimer),
         );
   }
 
