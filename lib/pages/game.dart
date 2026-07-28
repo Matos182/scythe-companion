@@ -8,6 +8,7 @@ import '../provider/room_notifier.dart';
 import '../utils/colors.dart';
 import '../utils/strings.dart';
 import '../widgets/confirm_dialog.dart';
+import '../widgets/scrollable_center_column.dart';
 import '../widgets/turn.dart';
 import '../widgets/waiting_lobby.dart';
 
@@ -183,82 +184,79 @@ class _ActiveGameView extends StatelessWidget {
     final notifier = context.watch<RoomNotifier>();
     final room = notifier.room;
 
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 50),
-            child: FittedBox(
-              child: Text(
-                "${room.turn.nickname}'s Turn  -  Round: ${room.totalTurns}",
-                style: const TextStyle(
-                  fontSize: 30,
-                  fontWeight: FontWeight.bold,
-                  color: bgColorBar,
-                ),
-              ),
-            ),
-          ),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 20, 20, 5),
+    return ScrollableCenterColumn(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 50),
+          child: FittedBox(
             child: Text(
-              'Turn Time Remaining:',
-              style: TextStyle(
-                fontSize: 18,
+              "${room.turn.nickname}'s Turn  -  Round: ${room.totalTurns}",
+              style: const TextStyle(
+                fontSize: 30,
                 fontWeight: FontWeight.bold,
                 color: bgColorBar,
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 5, 20, 10),
-            // Selector: rebuild ONLY when the active player's remaining
-            // seconds change (T3.1 hand-off debt item 4). The outer
-            // page keeps watching the notifier for structural events
-            // (turn swap, pause, presence) without tearing down this
-            // subtree every tick.
-            child: Selector<RoomNotifier, int>(
-              selector: (_, n) {
-                final r = n.room;
-                if (r.players.isEmpty ||
-                    r.turnIndex < 0 ||
-                    r.turnIndex >= r.players.length) {
-                  return 0;
-                }
-                return r.players[r.turnIndex].remainingSec;
-              },
-              builder: (_, remaining, __) => Text(
-                formatTime(remaining),
-                style: const TextStyle(
-                  fontSize: 30,
-                  fontWeight: FontWeight.bold,
-                  color: bgColorBar,
-                ),
+        ),
+        const Padding(
+          padding: EdgeInsets.fromLTRB(20, 20, 20, 5),
+          child: Text(
+            'Turn Time Remaining:',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: bgColorBar,
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 5, 20, 10),
+          // Selector: rebuild ONLY when the active player's remaining
+          // seconds change (T3.1 hand-off debt item 4). The outer
+          // page keeps watching the notifier for structural events
+          // (turn swap, pause, presence) without tearing down this
+          // subtree every tick.
+          child: Selector<RoomNotifier, int>(
+            selector: (_, n) {
+              final r = n.room;
+              if (r.players.isEmpty ||
+                  r.turnIndex < 0 ||
+                  r.turnIndex >= r.players.length) {
+                return 0;
+              }
+              return r.players[r.turnIndex].remainingSec;
+            },
+            builder: (_, remaining, __) => Text(
+              formatTime(remaining),
+              style: const TextStyle(
+                fontSize: 30,
+                fontWeight: FontWeight.bold,
+                color: bgColorBar,
               ),
             ),
           ),
-          room.isPaused
-              ? const ElevatedButton(
-                  onPressed: null,
-                  style: ButtonStyle(
-                    elevation: WidgetStatePropertyAll(7),
-                    backgroundColor: WidgetStatePropertyAll(unavailableColor),
-                    foregroundColor: WidgetStatePropertyAll(yourTurnText),
-                    fixedSize: WidgetStatePropertyAll(Size(250, 70)),
-                  ),
-                  child: Text(
-                    'GAME IS PAUSED!',
-                    style: TextStyle(fontSize: 18),
-                  ),
-                )
-              : const TurnPage(),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(5, 50, 10, 10),
-            child: _PlayersTable(formatTime: formatTime),
-          ),
-        ],
-      ),
+        ),
+        room.isPaused
+            ? const ElevatedButton(
+                onPressed: null,
+                style: ButtonStyle(
+                  elevation: WidgetStatePropertyAll(7),
+                  backgroundColor: WidgetStatePropertyAll(unavailableColor),
+                  foregroundColor: WidgetStatePropertyAll(yourTurnText),
+                  fixedSize: WidgetStatePropertyAll(Size(250, 70)),
+                ),
+                child: Text(
+                  'GAME IS PAUSED!',
+                  style: TextStyle(fontSize: 18),
+                ),
+              )
+            : const TurnPage(),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(5, 50, 10, 10),
+          child: _PlayersTable(formatTime: formatTime),
+        ),
+      ],
     );
   }
 }

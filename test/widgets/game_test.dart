@@ -39,11 +39,11 @@ Widget _gameUnderTest(GameRepository repository, RoomNotifier notifier) {
         Provider<GameRepository>.value(value: repository),
         ChangeNotifierProvider<RoomNotifier>.value(value: notifier),
       ],
-      // No SingleChildScrollView — the Scaffold inside GamePage has a
-      // MultiChildLayout that needs bounded height. The page itself
-      // uses Column-with-Center + DataTable; it fits in the default
-      // test viewport (800x600) for the small rooms we test (1-2
-      // players). Larger rooms would scroll; that's a T3.5 polish.
+      // No SingleChildScrollView here — the Scaffold inside GamePage has
+      // a MultiChildLayout that needs bounded height, and since T4.6 the
+      // page scrolls internally via ScrollableCenterColumn, so wrapping
+      // it again would nest two vertical scrollables. Small-phone /
+      // full-room overflow is covered by small_phone_overflow_test.dart.
       child: const Scaffold(body: GamePage()),
     ),
   );
