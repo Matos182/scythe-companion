@@ -65,7 +65,8 @@ Do **NOT** open port 3000 — the Node server is internal to Docker only.
 ```bash
 git clone https://github.com/Matos182/scythe-companion.git
 cd scythe-companion
-git checkout task/T2.5-docker-deploy   # or master once merged
+# Default branch is master and already contains the full deploy stack
+# (T2.5 merged long ago) — no extra checkout needed.
 ```
 
 ---
@@ -160,7 +161,7 @@ obtaining the cert. Check `docker compose logs caddy`.
 
 ## 6. Point the Flutter app at the server
 
-In the app (once T3.2 lands the settings screen), set the server URL to:
+In the app, open the gear-icon Settings screen and set the server URL to:
 
 ```
 https://scythe.yourdomain.com
