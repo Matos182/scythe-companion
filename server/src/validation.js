@@ -28,7 +28,11 @@ const MIN_NICKNAME_LEN = 1;
 const MAX_NICKNAME_LEN = 30;
 const MIN_TIMER = 10;          // seconds
 const MAX_TIMER = 3600;        // 1 hour — beyond this is absurd for a turn
-const MAX_ROOMS = 7;
+// NOTE (audit F2): a `MAX_ROOMS = 7` used to live here. It was dead code and
+// actively misleading — nothing imported it, it meant *players per room*, and
+// it collided by name with the real room cap (`config.maxRooms`, default 100,
+// from the MAX_ROOMS env var). The genuine 7-player limit is MAX_PLAYERS in
+// roomStore.js, which is the module that enforces it.
 
 // ── Helpers ────────────────────────────────────────────────────────
 
@@ -226,5 +230,4 @@ export const _constants = {
   MAX_NICKNAME_LEN,
   MIN_TIMER,
   MAX_TIMER,
-  MAX_ROOMS,
 };
