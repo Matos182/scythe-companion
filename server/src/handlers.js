@@ -379,6 +379,13 @@ export function registerHandlers(io, store, options = {}) {
 
       store.markConnected(roomCode, playerId, false);
 
+      const noPlayersConnected = room.players.every((player) => !player.connected);
+      if (noPlayersConnected) {
+        // Stop empty rooms from auto-passing forever. A returning turn owner
+        // auto-resumes in rejoinRoom; other returners resume manually.
+        timerEngine.pause(store, roomCode);
+      }
+
       // Auto-pause if it was the disconnecting player's turn.
       const wasCurrentTurn = store.isCurrentTurnPlayer(roomCode, playerId);
       if (wasCurrentTurn && !room.isPaused) {
