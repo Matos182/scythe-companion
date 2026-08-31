@@ -29,6 +29,12 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+    # ── Shared-VPS resource guard (T4.7d, OPTIONAL — see DEPLOY.md §0.4) ──
+    # Hard caps so this stack can never starve the other services on a
+    # shared host. Deliberately COMMENTED OUT by default — uncomment
+    # both lines only if you want the caps enforced.
+    # mem_limit: 256m
+    # cpus: 0.5
 
   caddy:
     image: caddy:2-alpine
