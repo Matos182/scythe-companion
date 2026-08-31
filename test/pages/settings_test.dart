@@ -101,4 +101,75 @@ void main() {
     expect(urlField.controller!.text, 'http://prefilled:3000');
     expect(nameField.controller!.text, 'Bob');
   });
+
+  testWidgets('Test connection normalizes the URL and shows success',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Provider<GameRepository>.value(
+          value: repository,
+          child: SettingsPage(
+            versionProbe: (url) async {
+              expect(url, 'https://scythe.guarita.site');
+              return SocketService.expectedProtocolVersion;
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byType(TextField).at(0),
+      'scythe.guarita.site',
+    );
+
+    await tester.tap(find.text('Test connection'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Server OK (protocol v1)'), findsOneWidget);
+  });
+
+  testWidgets('Test connection shows an unreachable server', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Provider<GameRepository>.value(
+          value: repository,
+          child: SettingsPage(versionProbe: (_) async => null),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byType(TextField).at(0),
+      '192.168.1.50:3000',
+    );
+
+    await tester.tap(find.text('Test connection'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Server unreachable at http://192.168.1.50:3000'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('Test connection shows a protocol mismatch', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Provider<GameRepository>.value(
+          value: repository,
+          child: SettingsPage(versionProbe: (_) async => 99),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Test connection'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Protocol mismatch: server v99, app expects v1'),
+      findsOneWidget,
+    );
+  });
 }
