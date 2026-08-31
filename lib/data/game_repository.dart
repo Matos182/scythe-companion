@@ -96,7 +96,7 @@ class GameRepository {
   ///
   /// Returns the URL the adapter is bound to after the save.
   Future<String?> saveSettings(AppSettings settings) async {
-    final normalizedUrl = _normalizeUrl(settings.serverUrl);
+    final normalizedUrl = normalizeServerUrl(settings.serverUrl);
     final next = AppSettings(
       // Persist the URL we already run on when the field was blank, so
       // the next launch restores it (main() reads settings at startup).
@@ -110,16 +110,49 @@ class GameRepository {
     return _currentServerUrl;
   }
 
-  static String? _normalizeUrl(String? raw) {
+  /// Normalizes user-entered server URLs for Settings and socket binding.
+  ///
+  /// Public internet hosts default to HTTPS. Hosts commonly used on a LAN
+  /// stay on HTTP because IPv4 literals, localhost, and `.local` names do not
+  /// normally have trusted TLS certificates. An explicit scheme always wins.
+  static String? normalizeServerUrl(String? raw) {
     if (raw == null) return null;
     final trimmed = raw.trim();
     if (trimmed.isEmpty) return null;
-    final withScheme = trimmed.contains('://') ? trimmed : 'http://$trimmed';
+
+    final hasExplicitScheme = trimmed.contains('://');
+    final withScheme = hasExplicitScheme
+        ? trimmed
+        : '${_defaultSchemeFor(trimmed)}://$trimmed';
+
     // Strip trailing slash so `http://x:3000/` and `http://x:3000` are the
     // same — socket.io doesn't care but QR round-trips are cleaner.
     return withScheme.endsWith('/')
         ? withScheme.substring(0, withScheme.length - 1)
         : withScheme;
+  }
+
+  static String _defaultSchemeFor(String schemeLessUrl) {
+    String host;
+    try {
+      host = Uri.parse('//$schemeLessUrl').host.toLowerCase();
+    } on FormatException {
+      // Let the eventual probe/socket connection surface malformed input.
+      // HTTPS is the safer default for anything we cannot identify as LAN.
+      return 'https';
+    }
+    final isLanHost =
+        host == 'localhost' || host.endsWith('.local') || _isIpv4Literal(host);
+    return isLanHost ? 'http' : 'https';
+  }
+
+  static bool _isIpv4Literal(String host) {
+    final octets = host.split('.');
+    if (octets.length != 4) return false;
+    return octets.every((octet) {
+      final value = int.tryParse(octet);
+      return value != null && value >= 0 && value <= 255;
+    });
   }
 
   static String? _normalizeNickname(String? raw) {
@@ -134,7 +167,7 @@ class GameRepository {
   /// Persists the URL (so the next launch restores it) and swaps the
   /// live adapter. Returns the normalized URL actually applied.
   Future<String> setServerUrl(String url) async {
-    final normalized = _normalizeUrl(url) ?? url;
+    final normalized = normalizeServerUrl(url) ?? url;
     final current = await _settings.load();
     await _settings.save(current.copyWith(serverUrl: normalized));
     if (normalized != _currentServerUrl) {
