@@ -37,7 +37,7 @@ import {
   validateRoomAction,
   validateRejoinRoom,
 } from './validation.js';
-import { allowConnection, releaseConnection } from './rateLimit.js';
+import { allowConnection, releaseConnection, clientIp } from './rateLimit.js';
 import logger from './logger.js';
 
 /**
@@ -52,7 +52,7 @@ export function registerHandlers(io, store, options = {}) {
 
   // ── Connection-rate middleware (per-IP token bucket + concurrent cap) ──
   io.use((socket, next) => {
-    const ip = socket.handshake.address;
+    const ip = clientIp(socket);
     const result = allowConnection(ip);
     if (!result.allowed) {
       // Reject the connection — the client gets a connect_error.

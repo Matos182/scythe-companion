@@ -14,9 +14,13 @@
  * Map — it lives in memory and resets on server restart.  That's fine:
  * the goal is to stop accidental floods, not to survive a determined DDoS
  * (that's the reverse proxy's job, per D1).
+ *
+ * T4.7b: which IP a socket maps to is decided by clientIp() below — the
+ * handshake address normally, the first X-Forwarded-For entry when
+ * TRUST_PROXY=true (behind our own Caddy).
  */
 
-import { rateLimitPerMin, maxConnectionsPerIp } from './config.js';
+import { rateLimitPerMin, maxConnectionsPerIp, trustProxy } from './config.js';
 import { ERROR_CODES, errorEnvelope } from './errors.js';
 import logger from './logger.js';
 
@@ -126,3 +130,30 @@ export function _getBucket(ip) {
 }
 
 export { rateLimitPerMin, maxConnectionsPerIp };
+
+/**
+ * Resolve the client IP a socket should be rate-limited under (T4.7b).
+ *
+ * - trustProxy=false (default): `socket.handshake.address`.  Safe when
+ *   the server is directly reachable — a client-controlled XFF header
+ *   must never influence rate limiting.
+ * - trustProxy=true: the FIRST entry of the X-Forwarded-For header, set
+ *   by our own reverse proxy (Caddy in this repo's compose stack, which
+ *   terminates TLS and is the only published port).  The first entry is
+ *   the original client as seen by the proxy; later entries are
+ *   client-supplied and untrusted.  Missing/blank header falls back to
+ *   the handshake address (the proxy's) rather than crashing.
+ *
+ * @param {import('socket.io').Socket} socket
+ * @returns {string}
+ */
+export function clientIp(socket) {
+  if (trustProxy) {
+    const xff = socket.handshake.headers['x-forwarded-for'];
+    if (typeof xff === 'string') {
+      const first = xff.split(',')[0].trim();
+      if (first.length > 0) return first;
+    }
+  }
+  return socket.handshake.address;
+}

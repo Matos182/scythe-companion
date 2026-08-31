@@ -93,6 +93,12 @@ MIN_TURN_SEC=10
 MAX_ROOMS=100
 RATE_LIMIT_PER_MIN=20
 MAX_CONNECTIONS_PER_IP=10
+
+# Required behind this repo's Caddy: use the real client IP (from the
+# proxy's X-Forwarded-For) for rate limiting instead of Caddy's
+# container IP, which every connection would otherwise share.
+TRUST_PROXY=true
+
 LOG_LEVEL=info
 ```
 

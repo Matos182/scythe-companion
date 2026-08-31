@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   allowConnection,
   releaseConnection,
+  clientIp,
   _reset,
   _getBucket,
 } from '../src/rateLimit.js';
@@ -79,5 +80,79 @@ describe('rate limiter', () => {
     // IP B should still be allowed.
     const result = allowConnection('10.0.0.2');
     expect(result.allowed).toBe(true);
+  });
+});
+
+/**
+ * clientIp() tests (T4.7b done-criteria).
+ *
+ * trustProxy is read from env at module load, so the flag-on cases set
+ * process.env.TRUST_PROXY and re-import the module fresh via
+ * vi.resetModules().  The flag-off case uses the top-level import
+ * (default false).
+ */
+
+/** Build a minimal socket-shaped object for clientIp(). */
+function fakeSocket({ address = '172.18.0.2', xff } = {}) {
+  const headers = {};
+  if (xff !== undefined) headers['x-forwarded-for'] = xff;
+  return { handshake: { address, headers } };
+}
+
+describe('clientIp (proxy-aware rate-limit key)', () => {
+  const savedTrustProxy = process.env.TRUST_PROXY;
+
+  afterEach(() => {
+    if (savedTrustProxy === undefined) {
+      delete process.env.TRUST_PROXY;
+    } else {
+      process.env.TRUST_PROXY = savedTrustProxy;
+    }
+  });
+
+  it('flag off: spoofed XFF header is ignored, handshake address is used', () => {
+    // Top-level import has TRUST_PROXY unset → trustProxy=false.
+    const ip = clientIp(fakeSocket({ xff: '203.0.113.99' }));
+    expect(ip).toBe('172.18.0.2');
+  });
+
+  it('flag on: two different XFF IPs get separate buckets', async () => {
+    process.env.TRUST_PROXY = 'true';
+    vi.resetModules();
+    const fresh = await import('../src/rateLimit.js');
+    fresh._reset();
+
+    // Exhaust the concurrent cap for client A via its XFF.
+    for (let i = 0; i < 10; i++) {
+      const r = fresh.allowConnection(
+        fresh.clientIp(fakeSocket({ xff: '203.0.113.1' })),
+      );
+      expect(r.allowed).toBe(true);
+    }
+    expect(
+      fresh.allowConnection(fresh.clientIp(fakeSocket({ xff: '203.0.113.1' })))
+        .allowed,
+    ).toBe(false);
+
+    // Client B (different XFF, same proxy behind it) is unaffected.
+    const b = fresh.allowConnection(
+      fresh.clientIp(fakeSocket({ xff: '198.51.100.7' })),
+    );
+    expect(b.allowed).toBe(true);
+
+    // First entry of a multi-hop XFF wins; later entries are untrusted.
+    expect(
+      fresh.clientIp(fakeSocket({ xff: '203.0.113.1, 10.0.0.1' })),
+    ).toBe('203.0.113.1');
+  });
+
+  it('flag on + missing XFF: falls back to handshake address, no crash', async () => {
+    process.env.TRUST_PROXY = 'true';
+    vi.resetModules();
+    const fresh = await import('../src/rateLimit.js');
+
+    expect(fresh.clientIp(fakeSocket({}))).toBe('172.18.0.2');
+    // Blank header falls back too.
+    expect(fresh.clientIp(fakeSocket({ xff: '   ' }))).toBe('172.18.0.2');
   });
 });
