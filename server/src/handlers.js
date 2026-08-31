@@ -12,6 +12,10 @@
  * errors are sent as structured envelopes `{ code, message }`, rate
  * limiting is enforced at connection time, and structured logging
  * replaces console.log.
+ *
+ * T4.7c authorization: startGame/turn/pause/resume require the sender
+ * to be seated in the room they target (socket.data.roomCode), and
+ * `turn` additionally requires turn ownership (STATE_NOT_YOUR_TURN).
  */
 
 import { RoomStore } from './roomStore.js';
@@ -39,6 +43,34 @@ import {
 } from './validation.js';
 import { allowConnection, releaseConnection, clientIp } from './rateLimit.js';
 import logger from './logger.js';
+
+/**
+ * T4.7c — Room-action authorization (DECISIONS R2).
+ *
+ * The server stamps `socket.data.roomCode`/`playerId` at create/join/
+ * rejoin; the payload's `roomId` is only a claim.  A socket may act
+ * only on the room it is seated in — anything else gets
+ * AUTH_NOT_IN_ROOM and a warn log.  The check runs BEFORE the room
+ * lookup on purpose: a stranger probing guessed codes must not learn
+ * which codes exist (the response is identical either way).
+ *
+ * @param {import('socket.io').Socket} socket
+ * @param {string} roomId — roomId claimed by the client payload
+ * @returns {boolean} true when the socket is seated in roomId
+ */
+function requireRoomMembership(socket, roomId) {
+  if (socket.data.roomCode === roomId) return true;
+  logger.warn({
+    socketId: socket.id,
+    roomId,
+    seatedRoom: socket.data.roomCode ?? null,
+  }, 'room action rejected: sender not seated in room');
+  socket.emit(ERROR_OCCURRED, errorEnvelope(
+    ERROR_CODES.AUTH_NOT_IN_ROOM,
+    'You are not a player in that room.',
+  ));
+  return false;
+}
 
 /**
  * Register all socket handlers on an io instance.
@@ -159,6 +191,8 @@ export function registerHandlers(io, store, options = {}) {
       }
       const { roomId } = validation.data;
 
+      if (!requireRoomMembership(socket, roomId)) return;
+
       const room = store.get(roomId);
       if (!room) {
         socket.emit(ERROR_OCCURRED, errorEnvelope(
@@ -193,11 +227,25 @@ export function registerHandlers(io, store, options = {}) {
       }
       const { roomId } = validation.data;
 
+      if (!requireRoomMembership(socket, roomId)) return;
+
       const room = store.get(roomId);
       if (!room) {
         socket.emit(ERROR_OCCURRED, errorEnvelope(
           ERROR_CODES.STATE_ROOM_NOT_FOUND,
           'Room not found.',
+        ));
+        return;
+      }
+
+      // Turn-ownership (T4.7c): only the current turn player may pass.
+      // The honest client already gates the button on isMyTurn; this is
+      // the authoritative check.  (DECISIONS R2 parked the "creator can
+      // pass for an absent player" affordance — current-turn-only.)
+      if (!store.isCurrentTurnPlayer(roomId, socket.data.playerId)) {
+        socket.emit(ERROR_OCCURRED, errorEnvelope(
+          ERROR_CODES.STATE_NOT_YOUR_TURN,
+          "It's not your turn.",
         ));
         return;
       }
@@ -224,6 +272,8 @@ export function registerHandlers(io, store, options = {}) {
       }
       const { roomId } = validation.data;
 
+      if (!requireRoomMembership(socket, roomId)) return;
+
       const room = store.get(roomId);
       if (!room) {
         socket.emit(ERROR_OCCURRED, errorEnvelope(
@@ -246,6 +296,8 @@ export function registerHandlers(io, store, options = {}) {
         return;
       }
       const { roomId } = validation.data;
+
+      if (!requireRoomMembership(socket, roomId)) return;
 
       const room = store.get(roomId);
       if (!room) {

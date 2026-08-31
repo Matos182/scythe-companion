@@ -2,7 +2,7 @@
 
 **Protocol version:** 1  
 **Transport:** socket.io (client 3.x ↔ server 4.x)  
-**Last updated:** 2026-07-05 (T2.4 — error envelope, payload validation, rate limiting)
+**Last updated:** 2026-08-31 (T4.7c — room-action authorization)
 
 > A `protocolVersion` field is included in the `/healthz` HTTP response.
 > The client probes `/healthz` before opening the socket; if its expected
@@ -121,7 +121,7 @@ Closes the room, runs the faction wheel, sets first player.
 
 **Server response:** `updateRoom` (to the room) with reordered players + first turn.
 
-**Errors:** `errorOccurred` — "Room not found.", "You aren't playing with Automa!!" (single-player room)
+**Errors:** `errorOccurred` — "Room not found.", "You aren't playing with Automa!!" (single-player room), "You are not a player in that room." (`AUTH_NOT_IN_ROOM`, T4.7c — sender not seated in `roomId`)
 
 ---
 
@@ -140,13 +140,16 @@ below that threshold (audit A6), and restarts the timer engine for the room.
 
 **Server response:** `newTurn` (to the room) with updated room state.
 
+**Errors:** `errorOccurred` — "Room not found.", "You are not a player in that room." (`AUTH_NOT_IN_ROOM`, T4.7c), "It's not your turn." (`STATE_NOT_YOUR_TURN`, T4.7c — only the current turn player may pass)
+
 ---
 
 #### `pause`
 
 Pauses the game timer. The timer engine clears the 1s interval for this
 room; `remainingSec` is preserved (not reset). When resumed, ticking
-continues from where it left off.
+continues from where it left off.  Requires room membership (T4.7c —
+`AUTH_NOT_IN_ROOM` otherwise; same for `toContinue`).
 
 ```json
 {
@@ -261,6 +264,7 @@ All `errorOccurred` events carry a structured envelope instead of a bare string:
 | `VAL_INVALID_FACTION` | Validation | Faction not in the valid set |
 | `VAL_INVALID_MAT` | Validation | Player mat not in the valid set |
 | `VAL_BAD_PAYLOAD` | Validation | Payload is not a non-null object |
+| `AUTH_NOT_IN_ROOM` | Auth | Sender not seated in the room they target (T4.7c) |
 | `STATE_ROOM_NOT_FOUND` | State | Room does not exist |
 | `STATE_GAME_IN_PROGRESS` | State | Room closed (game started) |
 | `STATE_FACTION_OR_MAT_TAKEN` | State | Faction/mat already chosen |
