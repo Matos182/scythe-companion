@@ -57,6 +57,21 @@ export const rateLimitPerMin = Number(process.env.RATE_LIMIT_PER_MIN ?? 20);
 export const maxConnectionsPerIp = Number(process.env.MAX_CONNECTIONS_PER_IP ?? 10);
 
 /**
+ * Trust the X-Forwarded-For header for client IPs (T4.7b).
+ *
+ * Set to 'true' ONLY when the server sits behind the reverse proxy of
+ * this repo's compose stack (Caddy), which overwrites/appends XFF itself.
+ * With it false (default), the socket's handshake address is used — the
+ * safe choice when the server is directly reachable, because a client can
+ * send any XFF it likes and must not be allowed to spoof its rate-limit
+ * bucket.
+ * @type {boolean}
+ */
+export const trustProxy = ['true', '1'].includes(
+  (process.env.TRUST_PROXY ?? 'false').toLowerCase(),
+);
+
+/**
  * Pino log level.  'info' for production, 'debug' for dev.
  * @type {string}
  */
