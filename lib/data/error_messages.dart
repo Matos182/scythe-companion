@@ -50,6 +50,10 @@ const Map<String, String> _messages = {
   'VAL_BAD_PAYLOAD':
       "The server didn't understand the request. Please try again.",
 
+  // ── Authorization (AUTH_*) — server says you're not allowed (T4.7c) ──
+  'AUTH_NOT_IN_ROOM':
+      "You can only act on a game you're playing in. If you were disconnected, reopen the room to rejoin.",
+
   // ── State (STATE_*) — the game is in the wrong shape ─────────────
   'STATE_ROOM_NOT_FOUND':
       "Room not found. Double-check the code, or ask the creator for a new one.",
