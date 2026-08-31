@@ -105,10 +105,10 @@ void main() {
         () async {
       final applied =
           await repository.setServerUrl('new-server:3000/'); // no scheme, has /
-      expect(applied, 'http://new-server:3000');
-      expect(repository.currentServerUrl, 'http://new-server:3000');
+      expect(applied, 'https://new-server:3000');
+      expect(repository.currentServerUrl, 'https://new-server:3000');
       final saved = await settings.load();
-      expect(saved.serverUrl, 'http://new-server:3000');
+      expect(saved.serverUrl, 'https://new-server:3000');
     });
 
     test('saveSettings with a URL persists it and rebinds the adapter',

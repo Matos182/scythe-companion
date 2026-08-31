@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../data/game_repository.dart';
 import '../data/server_config.dart';
 import '../data/settings_repository.dart';
+import '../data/socket_service.dart';
 import '../utils/colors.dart';
 
 /// User-facing settings (T3.2). One server URL field + one nickname
@@ -15,7 +16,13 @@ import '../utils/colors.dart';
 /// a player can re-point the app at a friend's LAN server without
 /// rebuilding the APK (audit A11).
 class SettingsPage extends StatefulWidget {
-  const SettingsPage({super.key});
+  const SettingsPage({
+    super.key,
+    this.versionProbe = healthzVersionProbe,
+  });
+
+  /// Injectable so widget tests never make a network request.
+  final Future<int?> Function(String serverUrl) versionProbe;
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
@@ -26,6 +33,7 @@ class _SettingsPageState extends State<SettingsPage> {
   final _nicknameController = TextEditingController();
   bool _loaded = false;
   bool _saving = false;
+  bool _testingConnection = false;
   String? _errorText;
   String? _infoText;
 
@@ -45,6 +53,38 @@ class _SettingsPageState extends State<SettingsPage> {
       _nicknameController.text = saved.nickname ?? '';
       setState(() => _loaded = true);
     }
+  }
+
+  Future<void> _testConnection() async {
+    if (_testingConnection) return;
+    final normalizedUrl =
+        GameRepository.normalizeServerUrl(_serverUrlController.text) ??
+            GameRepository.normalizeServerUrl(ServerConfig.serverUrl)!;
+    setState(() {
+      _testingConnection = true;
+      _errorText = null;
+      _infoText = null;
+    });
+
+    int? version;
+    try {
+      version = await widget.versionProbe(normalizedUrl);
+    } catch (_) {
+      version = null;
+    }
+    if (!mounted) return;
+
+    setState(() {
+      _testingConnection = false;
+      if (version == null) {
+        _errorText = 'Server unreachable at $normalizedUrl';
+      } else if (version != SocketService.expectedProtocolVersion) {
+        _errorText = 'Protocol mismatch: server v$version, app expects '
+            'v${SocketService.expectedProtocolVersion}';
+      } else {
+        _infoText = 'Server OK (protocol v$version)';
+      }
+    });
   }
 
   Future<void> _save() async {
@@ -133,6 +173,19 @@ class _SettingsPageState extends State<SettingsPage> {
                   keyboardType: TextInputType.url,
                   autocorrect: false,
                   enableSuggestions: false,
+                ),
+                const SizedBox(height: 8),
+                ElevatedButton(
+                  onPressed: _testingConnection ? null : _testConnection,
+                  style: const ButtonStyle(
+                    elevation: WidgetStatePropertyAll(7),
+                    backgroundColor: WidgetStatePropertyAll(bgColorBar),
+                    foregroundColor: WidgetStatePropertyAll(buttonTextColor),
+                    fixedSize: WidgetStatePropertyAll(Size(150, 50)),
+                  ),
+                  child: Text(
+                    _testingConnection ? 'Testing…' : 'Test connection',
+                  ),
                 ),
                 const SizedBox(height: 24),
                 const Text(
