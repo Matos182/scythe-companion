@@ -43,9 +43,15 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      # Flutter is PINNED to the exact toolchain in DECISIONS E3 (3.44.4).
+      # Floating on channel:stable broke the build 2026-08-31 when stable moved
+      # to 3.47.2, which hard-requires Gradle >= 8.14.0 while the project pins
+      # gradle-8.11.1. Upgrade deliberately: bump this pin together with the
+      # Gradle wrapper/AGP/Kotlin trio, not one side alone.
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: 3.44.4
           channel: stable
           cache: true
 
