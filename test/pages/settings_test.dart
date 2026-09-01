@@ -102,7 +102,7 @@ void main() {
     expect(nameField.controller!.text, 'Bob');
   });
 
-  testWidgets('Test connection normalizes the URL and shows success',
+  testWidgets('successful connection test normalizes, saves, and applies URL',
       (tester) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -122,11 +122,17 @@ void main() {
       find.byType(TextField).at(0),
       'scythe.guarita.site',
     );
+    await tester.enterText(find.byType(TextField).at(1), 'Unsaved nickname');
 
     await tester.tap(find.text('Test connection'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Server OK (protocol v1)'), findsOneWidget);
+    expect(find.text('Server OK (protocol v1) — saved.'), findsOneWidget);
+    expect(repository.currentServerUrl, 'https://scythe.guarita.site');
+    final saved = await repository.loadSettings();
+    expect(saved.serverUrl, 'https://scythe.guarita.site');
+    expect(saved.nickname, isNull,
+        reason: 'Testing the server must not save the nickname field');
   });
 
   testWidgets('Test connection shows an unreachable server', (tester) async {
@@ -151,6 +157,8 @@ void main() {
       find.text('Server unreachable at http://192.168.1.50:3000'),
       findsOneWidget,
     );
+    expect(repository.currentServerUrl, isNull);
+    expect((await repository.loadSettings()).serverUrl, isNull);
   });
 
   testWidgets('Test connection shows a protocol mismatch', (tester) async {
@@ -171,5 +179,7 @@ void main() {
       find.text('Protocol mismatch: server v99, app expects v1'),
       findsOneWidget,
     );
+    expect(repository.currentServerUrl, isNull);
+    expect((await repository.loadSettings()).serverUrl, isNull);
   });
 }

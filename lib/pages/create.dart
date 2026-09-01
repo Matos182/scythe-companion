@@ -75,14 +75,13 @@ class _CreateRoomState extends State<CreateRoom> {
 
   @override
   Widget build(BuildContext context) {
-    // T3.5.x: surface the connecting state as a pill above the form so
-    // the user knows why the Create button hasn't responded yet.
-    // T3.5.x regression: this MUST be `watch`, not `read` — the
-    // connection state flips disconnected→connecting→connected during
-    // the createRoom round trip, and without subscribing the widget
-    // never rebuilds and the pill stays hidden for the whole handshake.
+    // Surface both the initial handshake and socket.io retries above the
+    // form. This MUST be `watch`, not `read`: without subscribing, the
+    // widget never rebuilds as the connection state changes.
     final connectionState = context.watch<RoomNotifier>().connectionState;
     final isConnecting = connectionState == SocketConnectionState.connecting;
+    final isRetrying = connectionState == SocketConnectionState.reconnecting;
+    final serverUrl = context.read<GameRepository>().currentServerUrl;
 
     return Scaffold(
       backgroundColor: bgColorBar,
@@ -111,7 +110,10 @@ class _CreateRoomState extends State<CreateRoom> {
         ),
         child: ScrollableCenterColumn(
           children: <Widget>[
-            if (isConnecting) const ConnectionPill(),
+            if (isConnecting || isRetrying)
+              ConnectionPill(
+                label: isRetrying ? ConnectionStrings.retryingPill : null,
+              ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 10, 20, 50),
               child: TextField(
@@ -210,6 +212,7 @@ class _CreateRoomState extends State<CreateRoom> {
                 child: const Text("Create Room"),
               ),
             ),
+            ServerUrlFooter(serverUrl: serverUrl),
           ],
         ),
       ),

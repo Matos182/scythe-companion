@@ -7,6 +7,7 @@ import '../data/server_config.dart';
 import '../data/settings_repository.dart';
 import '../data/socket_service.dart';
 import '../utils/colors.dart';
+import '../utils/strings.dart';
 
 /// User-facing settings (T3.2). One server URL field + one nickname
 /// field, both persisted to `shared_preferences` (D4) and read on
@@ -74,17 +75,38 @@ class _SettingsPageState extends State<SettingsPage> {
     }
     if (!mounted) return;
 
-    setState(() {
-      _testingConnection = false;
-      if (version == null) {
+    if (version == null) {
+      setState(() {
+        _testingConnection = false;
         _errorText = 'Server unreachable at $normalizedUrl';
-      } else if (version != SocketService.expectedProtocolVersion) {
+      });
+      return;
+    }
+    if (version != SocketService.expectedProtocolVersion) {
+      setState(() {
+        _testingConnection = false;
         _errorText = 'Protocol mismatch: server v$version, app expects '
             'v${SocketService.expectedProtocolVersion}';
-      } else {
-        _infoText = 'Server OK (protocol v$version)';
-      }
-    });
+      });
+      return;
+    }
+
+    try {
+      final savedUrl =
+          await context.read<GameRepository>().setServerUrl(normalizedUrl);
+      if (!mounted) return;
+      _serverUrlController.text = savedUrl;
+      setState(() {
+        _testingConnection = false;
+        _infoText = SettingsStrings.probeSaved(version!);
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _testingConnection = false;
+        _errorText = 'Could not save server: $error';
+      });
+    }
   }
 
   Future<void> _save() async {
