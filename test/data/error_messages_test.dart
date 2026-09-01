@@ -38,6 +38,7 @@ void main() {
         'SERVER_MAX_ROOMS',
         // Client-only
         'PROTOCOL_MISMATCH',
+        'CLIENT_CONNECT_FAILED',
         'CLIENT_BAD_PAYLOAD',
         'UNKNOWN',
       ];
@@ -47,6 +48,18 @@ void main() {
         expect(msg, isNot(equals('raw')),
             reason: '$code fell through to the raw server message');
       }
+    });
+
+    test('connect failure copy includes its server URL and next action', () {
+      const error = SocketError(
+        code: 'CLIENT_CONNECT_FAILED',
+        message: 'https://scythe.guarita.site',
+      );
+
+      final message = humanizeError(error);
+
+      expect(message, contains('https://scythe.guarita.site'));
+      expect(message, contains('Settings → Test connection'));
     });
 
     test('falls back to the server-supplied message for unknown codes', () {

@@ -47,6 +47,18 @@ class ConnectionStrings {
   /// Short pill used on Create/Join/Settings so the user knows the
   /// app is mid-handshake without a full-screen spinner.
   static const connectingPill = 'Connecting…';
+  static const retryingPill = "Can't reach server — retrying…";
+
+  static String serverFooter(String? serverUrl) =>
+      'Server: ${serverUrl ?? 'not configured'}';
+}
+
+/// Settings-page feedback introduced by the connection probe.
+class SettingsStrings {
+  const SettingsStrings._();
+
+  static String probeSaved(int version) =>
+      'Server OK (protocol v$version) — saved.';
 }
 
 /// Empty-state copy.

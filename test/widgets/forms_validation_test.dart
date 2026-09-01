@@ -161,6 +161,53 @@ void main() {
       await tester.pump();
     });
 
+    testWidgets('shows the retrying pill after a connect failure',
+        (tester) async {
+      final fake = FakeSocketAdapter()..pauseConnect = true;
+      final repository = _buildRepository(fake);
+      addTearDown(repository.dispose);
+      final notifier = RoomNotifier(repository);
+      addTearDown(notifier.dispose);
+
+      await tester.pumpWidget(
+        _pumpPage(
+          child: const CreateRoom(),
+          repository: repository,
+          notifier: notifier,
+        ),
+      );
+      await tester.pump();
+
+      await repository.connect();
+      fake.serverEmit('connect_error', 'refused');
+      await tester.pump();
+
+      expect(find.byType(ConnectionPill), findsOneWidget);
+      expect(find.text(ConnectionStrings.retryingPill), findsOneWidget);
+
+      fake.simulateReconnect('socket-2');
+      await tester.pump();
+    });
+
+    testWidgets('shows the socket server URL below the form', (tester) async {
+      final fake = FakeSocketAdapter();
+      final repository = _buildRepository(fake);
+      addTearDown(repository.dispose);
+      final notifier = RoomNotifier(repository);
+      addTearDown(notifier.dispose);
+
+      await tester.pumpWidget(
+        _pumpPage(
+          child: const CreateRoom(),
+          repository: repository,
+          notifier: notifier,
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('Server: http://test-server:3000'), findsOneWidget);
+    });
+
     testWidgets('hides the ConnectionPill again after the handshake completes',
         (tester) async {
       final fake = FakeSocketAdapter()..pauseConnect = true;

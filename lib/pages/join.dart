@@ -114,14 +114,12 @@ class _JoinRoomState extends State<JoinRoom> {
 
   @override
   Widget build(BuildContext context) {
-    // T3.5.x: surface the connecting state as a pill above the form
-    // (parity with Create). Must be `watch` so the widget rebuilds when
-    // the RoomNotifier flips disconnected→connecting→connected during
-    // the joinRoom round trip — see create.dart for the same fix and
-    // the test in test/widgets/forms_validation_test.dart that proves
-    // the subscription is live.
+    // Surface both the initial handshake and socket.io retries (parity with
+    // Create). Must be `watch` so the widget rebuilds on state changes.
     final connectionState = context.watch<RoomNotifier>().connectionState;
     final isConnecting = connectionState == SocketConnectionState.connecting;
+    final isRetrying = connectionState == SocketConnectionState.reconnecting;
+    final serverUrl = context.read<GameRepository>().currentServerUrl;
 
     return Scaffold(
       backgroundColor: bgColorBar,
@@ -150,7 +148,10 @@ class _JoinRoomState extends State<JoinRoom> {
         ),
         child: ScrollableCenterColumn(
           children: <Widget>[
-            if (isConnecting) const ConnectionPill(),
+            if (isConnecting || isRetrying)
+              ConnectionPill(
+                label: isRetrying ? ConnectionStrings.retryingPill : null,
+              ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 50, 20, 7),
               child: TextField(
@@ -258,6 +259,7 @@ class _JoinRoomState extends State<JoinRoom> {
                 ],
               ),
             ),
+            ServerUrlFooter(serverUrl: serverUrl),
           ],
         ),
       ),

@@ -108,6 +108,9 @@ class SocketService {
   /// Wire protocol this client build understands (docs/PROTOCOL.md).
   static const int expectedProtocolVersion = 1;
 
+  /// Maximum time an initial handshake may remain unresolved.
+  static const Duration connectTimeout = Duration(seconds: 12);
+
   SocketAdapter _adapter;
 
   /// Probe for the server's protocol version. NOT final: a server swap
@@ -118,6 +121,8 @@ class SocketService {
   SocketConnectionState _state = SocketConnectionState.disconnected;
   bool _wasConnected = false;
   bool _versionChecked = false;
+  bool _connectFailureReported = false;
+  Timer? _connectTimeoutTimer;
 
   final _stateController = StreamController<SocketConnectionState>.broadcast();
   final _roomJoinedController = StreamController<Room>.broadcast();
@@ -157,6 +162,7 @@ class SocketService {
         _state == SocketConnectionState.reconnecting) {
       return;
     }
+    _connectFailureReported = false;
     if (!_versionChecked && _versionProbe != null) {
       final serverVersion = await _versionProbe!();
       if (serverVersion != null && serverVersion != expectedProtocolVersion) {
@@ -173,10 +179,12 @@ class SocketService {
       if (serverVersion != null) _versionChecked = true;
     }
     _setState(SocketConnectionState.connecting);
+    _startConnectTimeout();
     _adapter.connect();
   }
 
   void disconnect() {
+    _cancelConnectTimeout();
     _setState(SocketConnectionState.disconnected);
     _adapter.disconnect();
   }
@@ -196,6 +204,7 @@ class SocketService {
   void swapAdapter(SocketAdapter next,
       {Future<int?> Function()? versionProbe}) {
     if (identical(next, _adapter)) return;
+    _cancelConnectTimeout();
     _adapter.dispose();
     _adapter = next;
     _versionProbe = versionProbe ?? _versionProbe;
@@ -258,6 +267,8 @@ class SocketService {
   /// The ONLY place socket handlers are registered (A10 fix).
   void _registerHandlers() {
     _adapter.on('connect', (_) {
+      _cancelConnectTimeout();
+      _connectFailureReported = false;
       _wasConnected = true;
       _setState(SocketConnectionState.connected);
     });
@@ -265,13 +276,16 @@ class SocketService {
       // socket.io auto-retries after an unexpected drop; a manual
       // disconnect() already moved state to disconnected.
       if (_state == SocketConnectionState.disconnected) return;
+      _cancelConnectTimeout();
       _setState(_wasConnected
           ? SocketConnectionState.reconnecting
           : SocketConnectionState.disconnected);
     });
     _adapter.on('connect_error', (_) {
       // Includes rate-limit rejections (T2.4: middleware errors surface
-      // as connect_error, not the structured envelope).
+      // as connect_error, not the structured envelope). socket.io can fire
+      // this on every retry, so report it only once per attempt cycle.
+      _reportConnectFailure();
       if (_state == SocketConnectionState.connecting) {
         _setState(SocketConnectionState.reconnecting);
       }
@@ -322,6 +336,31 @@ class SocketService {
     }
   }
 
+  void _startConnectTimeout() {
+    _cancelConnectTimeout();
+    _connectTimeoutTimer = Timer(connectTimeout, () {
+      if (_state == SocketConnectionState.connected) return;
+      _reportConnectFailure();
+      _setState(SocketConnectionState.disconnected);
+      _adapter.disconnect();
+    });
+  }
+
+  void _cancelConnectTimeout() {
+    _connectTimeoutTimer?.cancel();
+    _connectTimeoutTimer = null;
+  }
+
+  void _reportConnectFailure() {
+    if (_connectFailureReported) return;
+    _connectFailureReported = true;
+    _errorController.add(SocketError(
+      code: 'CLIENT_CONNECT_FAILED',
+      // humanizeError turns this source-of-truth URL into actionable copy.
+      message: _adapter.serverUrl,
+    ));
+  }
+
   void _setState(SocketConnectionState next) {
     if (next == _state) return;
     _state = next;
@@ -329,6 +368,7 @@ class SocketService {
   }
 
   void dispose() {
+    _cancelConnectTimeout();
     _adapter.dispose();
     _stateController.close();
     _roomJoinedController.close();

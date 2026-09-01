@@ -125,6 +125,51 @@ void main() {
       expect(matched.state, SocketConnectionState.connected);
     });
 
+    test('connect_error emits one actionable error per attempt cycle',
+        () async {
+      fake.pauseConnect = true;
+      final errors = <SocketError>[];
+      service.errors.listen(errors.add);
+
+      await service.connect();
+      fake.serverEmit('connect_error', 'refused');
+      fake.serverEmit('connect_error', 'refused again');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(errors, hasLength(1));
+      expect(errors.single.code, 'CLIENT_CONNECT_FAILED');
+      expect(errors.single.message, contains('http://test-server:3000'));
+
+      fake.simulateReconnect('socket-2');
+      fake.simulateDrop();
+      fake.serverEmit('connect_error', 'refused after drop');
+      fake.serverEmit('connect_error', 'refused again after drop');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(errors, hasLength(2),
+          reason: 'A successful connect starts a fresh retry cycle');
+      service.disconnect();
+    });
+
+    testWidgets('connect timeout reports an error and disconnects the adapter',
+        (tester) async {
+      final stalledFake = FakeSocketAdapter()..pauseConnect = true;
+      final stalledService = SocketService(adapter: stalledFake);
+      final errors = <SocketError>[];
+      stalledService.errors.listen(errors.add);
+      addTearDown(stalledService.dispose);
+
+      await stalledService.connect();
+      expect(stalledService.state, SocketConnectionState.connecting);
+
+      await tester.pump(const Duration(seconds: 12));
+
+      expect(stalledService.state, SocketConnectionState.disconnected);
+      expect(stalledFake.isConnected, isFalse);
+      expect(errors, hasLength(1));
+      expect(errors.single.code, 'CLIENT_CONNECT_FAILED');
+    });
+
     test('handlers are registered once, not per page (A10)', () async {
       // All handlers live on the service; opening/closing pages must not
       // change the count. 1 handler per wire event.

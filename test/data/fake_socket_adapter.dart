@@ -16,6 +16,11 @@ class SentEvent {
 }
 
 class FakeSocketAdapter implements SocketAdapter {
+  FakeSocketAdapter({this.serverUrl = 'http://test-server:3000'});
+
+  @override
+  final String serverUrl;
+
   final Map<String, List<void Function(dynamic)>> _handlers = {};
   final List<SentEvent> sentEvents = [];
 

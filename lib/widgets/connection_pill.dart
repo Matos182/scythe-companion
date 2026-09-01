@@ -43,3 +43,25 @@ class ConnectionPill extends StatelessWidget {
     );
   }
 }
+
+/// Shows the socket's current destination directly on Create/Join.
+///
+/// This stays visible even when disconnected so a stale localhost binding is
+/// obvious without opening Settings or interpreting a transient error.
+class ServerUrlFooter extends StatelessWidget {
+  const ServerUrlFooter({super.key, required this.serverUrl});
+
+  final String? serverUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+      child: Text(
+        ConnectionStrings.serverFooter(serverUrl),
+        textAlign: TextAlign.center,
+        style: const TextStyle(color: Colors.white70, fontSize: 12),
+      ),
+    );
+  }
+}

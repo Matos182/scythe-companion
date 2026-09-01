@@ -25,6 +25,12 @@ import 'socket_service.dart';
 /// the client). The fallback is intentional — silently dropping an
 /// error is worse than a slightly developer-y sentence.
 String humanizeError(SocketError error) {
+  if (error.code == 'CLIENT_CONNECT_FAILED') {
+    final serverUrl =
+        error.message.isEmpty ? 'the configured URL' : error.message;
+    return "Can't reach the server at $serverUrl. "
+        'Check Settings → Test connection.';
+  }
   final message = _messages[error.code];
   if (message != null) return message;
   // Fall through to the server's text. Some legacy errors arrive as
@@ -36,7 +42,7 @@ String humanizeError(SocketError error) {
 /// All codes we recognise. Keep this list in sync with:
 ///  - server/src/errors.js (the wire catalogue — T2.4 hand-off)
 ///  - lib/data/socket_service.dart (client-side PROTOCOL_MISMATCH,
-///    CLIENT_BAD_PAYLOAD, UNKNOWN)
+///    CLIENT_CONNECT_FAILED, CLIENT_BAD_PAYLOAD, UNKNOWN)
 const Map<String, String> _messages = {
   // ── Validation (VAL_*) — user typed something wrong ─────────────
   'VAL_MISSING_NICKNAME': "Please enter a nickname before joining the game.",

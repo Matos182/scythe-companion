@@ -11,6 +11,9 @@ import 'package:socket_io_client/socket_io_client.dart' as io;
 
 /// Minimal socket surface the service needs.
 abstract class SocketAdapter {
+  /// Base URL this transport connects to, used in actionable client errors.
+  String get serverUrl;
+
   /// Current socket id, or null when disconnected.
   String? get id;
 
@@ -37,7 +40,7 @@ abstract class SocketAdapter {
 /// (`reconnectionDelay` doubles up to `reconnectionDelayMax` with jitter) —
 /// no hand-rolled retry loop to get wrong.
 class IoSocketAdapter implements SocketAdapter {
-  IoSocketAdapter(String serverUrl)
+  IoSocketAdapter(this.serverUrl)
       : _socket = io.io(serverUrl, <String, dynamic>{
           'transports': ['websocket'],
           'autoConnect': false,
@@ -46,6 +49,9 @@ class IoSocketAdapter implements SocketAdapter {
           'reconnectionDelayMax': 10000,
           'randomizationFactor': 0.5,
         });
+
+  @override
+  final String serverUrl;
 
   final io.Socket _socket;
 
