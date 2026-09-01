@@ -6,23 +6,18 @@ import '../data/game_repository.dart';
 import '../data/server_config.dart';
 import '../data/settings_repository.dart';
 import '../data/socket_service.dart';
-import '../utils/colors.dart';
+import '../ui/backdrop.dart';
+import '../ui/panel_card.dart';
+import '../ui/theme.dart';
 import '../utils/strings.dart';
 
-/// User-facing settings (T3.2). One server URL field + one nickname
-/// field, both persisted to `shared_preferences` (D4) and read on
-/// subsequent launches.
-///
-/// Lives at `/settings`, reachable from the home AppBar's gear icon so
-/// a player can re-point the app at a friend's LAN server without
-/// rebuilding the APK (audit A11).
+/// Runtime server and nickname settings.
 class SettingsPage extends StatefulWidget {
   const SettingsPage({
     super.key,
     this.versionProbe = healthzVersionProbe,
   });
 
-  /// Injectable so widget tests never make a network request.
   final Future<int?> Function(String serverUrl) versionProbe;
 
   @override
@@ -128,9 +123,9 @@ class _SettingsPageState extends State<SettingsPage> {
       );
       if (!mounted) return;
       setState(() => _infoText = 'Saved.');
-    } catch (e) {
+    } catch (error) {
       if (!mounted) return;
-      setState(() => _errorText = 'Could not save: $e');
+      setState(() => _errorText = 'Could not save: $error');
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -138,132 +133,91 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Load saved values exactly once after the first build — pre-pump
-    // the controllers with the persisted nickname + URL.
     if (!_loaded) {
-      // Defer to the next frame so we can use context.read safely.
       WidgetsBinding.instance.addPostFrameCallback((_) => _loadInitial());
     }
 
     return Scaffold(
-      backgroundColor: bgColor,
-      appBar: AppBar(
-        backgroundColor: bgColorBar,
-        title: const Text(
-          'Settings',
-          style: TextStyle(color: buttonTextColor),
-        ),
-        centerTitle: true,
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/background.png'),
-            fit: BoxFit.cover,
-          ),
-        ),
+      appBar: AppBar(title: const Text('Settings')),
+      body: ScytheBackdrop(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  'Server URL',
-                  style: TextStyle(
-                    color: buttonTextColor,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Where friends host the game. Leave blank to use the '
-                  'build-time default. Examples: '
-                  'http://192.168.1.50:3000 or https://play.example.com',
-                  style: TextStyle(color: buttonTextColor, fontSize: 12),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _serverUrlController,
-                  style: const TextStyle(color: buttonTextColor),
-                  decoration: const InputDecoration(
-                    hintText: 'http://your-server:3000',
-                    hintStyle: TextStyle(color: buttonTextColor),
-                    filled: true,
-                    fillColor: bgColorBar,
-                  ),
-                  keyboardType: TextInputType.url,
-                  autocorrect: false,
-                  enableSuggestions: false,
-                ),
-                const SizedBox(height: 8),
-                ElevatedButton(
-                  onPressed: _testingConnection ? null : _testConnection,
-                  style: const ButtonStyle(
-                    elevation: WidgetStatePropertyAll(7),
-                    backgroundColor: WidgetStatePropertyAll(bgColorBar),
-                    foregroundColor: WidgetStatePropertyAll(buttonTextColor),
-                    fixedSize: WidgetStatePropertyAll(Size(150, 50)),
-                  ),
-                  child: Text(
-                    _testingConnection ? 'Testing…' : 'Test connection',
-                  ),
-                ),
-                const SizedBox(height: 24),
-                const Text(
-                  'Default nickname',
-                  style: TextStyle(
-                    color: buttonTextColor,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Pre-fills the create/join page so you don\'t retype it '
-                  'every game.',
-                  style: TextStyle(color: buttonTextColor, fontSize: 12),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _nicknameController,
-                  style: const TextStyle(color: buttonTextColor),
-                  decoration: const InputDecoration(
-                    hintText: 'Player name',
-                    hintStyle: TextStyle(color: buttonTextColor),
-                    filled: true,
-                    fillColor: bgColorBar,
-                  ),
-                  keyboardType: TextInputType.text,
-                  textCapitalization: TextCapitalization.words,
-                ),
-                const SizedBox(height: 24),
-                if (_errorText != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Text(
-                      _errorText!,
-                      style: const TextStyle(color: Colors.redAccent),
+            child: PanelCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text('Server URL',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Where friends host the game. Leave blank to use the '
+                    'build-time default. Examples: '
+                    'http://192.168.1.50:3000 or https://play.example.com',
+                    style: TextStyle(
+                      color: ScytheColors.parchmentDim,
+                      fontSize: 12,
                     ),
                   ),
-                if (_infoText != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _serverUrlController,
+                    decoration: const InputDecoration(
+                      hintText: 'http://your-server:3000',
+                    ),
+                    keyboardType: TextInputType.url,
+                    autocorrect: false,
+                    enableSuggestions: false,
+                  ),
+                  const SizedBox(height: 8),
+                  ElevatedButton(
+                    onPressed: _testingConnection ? null : _testConnection,
                     child: Text(
-                      _infoText!,
-                      style: const TextStyle(color: Colors.greenAccent),
+                      _testingConnection ? 'Testing…' : 'Test connection',
                     ),
                   ),
-                ElevatedButton(
-                  onPressed: _saving ? null : _save,
-                  style: const ButtonStyle(
-                    elevation: WidgetStatePropertyAll(7),
-                    backgroundColor: WidgetStatePropertyAll(bgColorBar),
-                    foregroundColor: WidgetStatePropertyAll(buttonTextColor),
-                    fixedSize: WidgetStatePropertyAll(Size(150, 50)),
+                  const SizedBox(height: 24),
+                  const Text('Default nickname',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Pre-fills the create/join page so you don\'t retype it '
+                    'every game.',
+                    style: TextStyle(
+                      color: ScytheColors.parchmentDim,
+                      fontSize: 12,
+                    ),
                   ),
-                  child: Text(_saving ? 'Saving…' : 'Save'),
-                ),
-              ],
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _nicknameController,
+                    decoration: const InputDecoration(hintText: 'Player name'),
+                    keyboardType: TextInputType.text,
+                    textCapitalization: TextCapitalization.words,
+                  ),
+                  const SizedBox(height: 24),
+                  if (_errorText != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(
+                        _errorText!,
+                        style: const TextStyle(color: ScytheColors.danger),
+                      ),
+                    ),
+                  if (_infoText != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(
+                        _infoText!,
+                        style: const TextStyle(color: ScytheColors.teslaGlow),
+                      ),
+                    ),
+                  ElevatedButton(
+                    onPressed: _saving ? null : _save,
+                    child: Text(_saving ? 'Saving…' : 'Save'),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

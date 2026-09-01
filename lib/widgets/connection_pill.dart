@@ -1,26 +1,19 @@
 // SPDX-License-Identifier: MIT
 
 import 'package:flutter/material.dart';
+import '../ui/theme.dart';
 import '../utils/strings.dart';
 
-/// T3.5: small pill widget shown at the top of Create/Join/Settings
-/// while the socket is mid-handshake. Not a full-screen spinner — the
-/// user is filling a form, they should still see the form, they just
-/// need to know why the button hasn't done anything yet.
-///
-/// Colour choice: matches the existing `_ReconnectBanner` palette
-/// (orange/green) so users learn the visual grammar in one place.
 class ConnectionPill extends StatelessWidget {
   const ConnectionPill({super.key, this.label});
 
-  /// Override the default label (rare — useful for tests).
   final String? label;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      color: Colors.orange.shade700,
+      color: ScytheColors.warning,
       padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -30,13 +23,13 @@ class ConnectionPill extends StatelessWidget {
             height: 14,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              valueColor: AlwaysStoppedAnimation<Color>(ScytheColors.coal),
             ),
           ),
           const SizedBox(width: 8),
           Text(
             label ?? ConnectionStrings.connectingPill,
-            style: const TextStyle(color: Colors.white, fontSize: 13),
+            style: const TextStyle(color: ScytheColors.coal, fontSize: 13),
           ),
         ],
       ),
@@ -44,10 +37,39 @@ class ConnectionPill extends StatelessWidget {
   }
 }
 
+/// Smoothly opens and closes the connection status slot on forms.
+class ConnectionPillSlot extends StatelessWidget {
+  const ConnectionPillSlot({
+    super.key,
+    required this.visible,
+    this.label,
+  });
+
+  final bool visible;
+  final String? label;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.topCenter,
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 180),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeOutCubic,
+        child: visible
+            ? ConnectionPill(
+                key: const ValueKey('connection-pill'),
+                label: label,
+              )
+            : const SizedBox.shrink(key: ValueKey('connection-pill-empty')),
+      ),
+    );
+  }
+}
+
 /// Shows the socket's current destination directly on Create/Join.
-///
-/// This stays visible even when disconnected so a stale localhost binding is
-/// obvious without opening Settings or interpreting a transient error.
 class ServerUrlFooter extends StatelessWidget {
   const ServerUrlFooter({super.key, required this.serverUrl});
 
@@ -60,7 +82,10 @@ class ServerUrlFooter extends StatelessWidget {
       child: Text(
         ConnectionStrings.serverFooter(serverUrl),
         textAlign: TextAlign.center,
-        style: const TextStyle(color: Colors.white70, fontSize: 12),
+        style: const TextStyle(
+          color: ScytheColors.parchmentDim,
+          fontSize: 12,
+        ),
       ),
     );
   }

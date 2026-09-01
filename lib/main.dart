@@ -16,6 +16,7 @@ import './models/route_config.dart';
 import './models/route_const.dart';
 import './provider/room_data_provider.dart';
 import './provider/room_notifier.dart';
+import './ui/theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -196,6 +197,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         child: MaterialApp.router(
           title: 'Scythe Companion',
           scaffoldMessengerKey: _messengerKey,
+          theme: ScytheTheme.dark(),
           routerConfig: _router.router,
         ));
   }

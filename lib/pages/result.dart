@@ -4,9 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../domain/winner.dart';
-import '../provider/room_data_provider.dart';
-import '../utils/colors.dart';
 import '../models/players.dart';
+import '../provider/room_data_provider.dart';
+import '../ui/panel_card.dart';
+import '../ui/theme.dart';
 
 /// [ResultPage] displays the final results of the Scythe Coin Calculator.
 /// Shows the winner(s) — including ties — and a sorted score table.
@@ -44,20 +45,11 @@ class _ResultPageState extends State<ResultPage> {
     }
 
     return Scaffold(
-      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: bgColorBar,
-        title: const Text(
-          "Scythe Coin Calculator",
-          style: TextStyle(color: boxTextColor),
-        ),
-        centerTitle: true,
+        title: const Text('Scythe Coin Calculator'),
         actions: [
           IconButton(
-            icon: const Icon(
-              Icons.home_rounded,
-              color: buttonTextColor,
-            ),
+            icon: const Icon(Icons.home_rounded),
             tooltip: 'Home',
             onPressed: () {
               context.go('/');
@@ -73,48 +65,51 @@ class _ResultPageState extends State<ResultPage> {
                 child: Text(
               winnerText,
               style: const TextStyle(
-                color: bgColorBar,
+                color: ScytheColors.brass,
                 fontSize: 24,
+                fontWeight: FontWeight.w700,
               ),
             )),
             const SizedBox(height: 20),
             if (ranked.isNotEmpty) ...[
               Padding(
                   padding: const EdgeInsets.all(8),
-                  child: Table(
-                    border: TableBorder.all(
-                      color: bgColorBar,
-                      style: BorderStyle.solid,
-                      width: 3,
-                    ),
-                    children: [
-                      _buildTableRow(
-                        header: true,
-                        children: const [
-                          '#',
-                          'Name',
-                          'Pop',
-                          'Stars',
-                          'Lands',
-                          'Res',
-                          'Coins',
-                          'Bldg',
-                          'TOTAL',
-                        ],
+                  child: PanelCard(
+                    padding: const EdgeInsets.all(8),
+                    child: Table(
+                      border: TableBorder.all(
+                        color: ScytheColors.seam,
+                        style: BorderStyle.solid,
                       ),
-                      for (var r in ranked)
-                        _buildTableRow(children: [
-                          '${r.rank}',
-                          r.entry.name,
-                          r.entry.popularity.toString(),
-                          r.entry.stars.toString(),
-                          r.entry.lands.toString(),
-                          r.entry.resources.toString(),
-                          r.entry.coins.toString(),
-                          r.entry.buildings.toString(),
-                          r.entry.result.toString(),
-                        ]),
-                    ],
+                      children: [
+                        _buildTableRow(
+                          header: true,
+                          children: const [
+                            '#',
+                            'Name',
+                            'Pop',
+                            'Stars',
+                            'Lands',
+                            'Res',
+                            'Coins',
+                            'Bldg',
+                            'TOTAL',
+                          ],
+                        ),
+                        for (var r in ranked)
+                          _buildTableRow(children: [
+                            '${r.rank}',
+                            r.entry.name,
+                            r.entry.popularity.toString(),
+                            r.entry.stars.toString(),
+                            r.entry.lands.toString(),
+                            r.entry.resources.toString(),
+                            r.entry.coins.toString(),
+                            r.entry.buildings.toString(),
+                            r.entry.result.toString(),
+                          ]),
+                      ],
+                    ),
                   ))
             ] else
               const Text('No results found'),
@@ -129,7 +124,7 @@ class _ResultPageState extends State<ResultPage> {
     bool header = false,
   }) {
     final textStyle = TextStyle(
-      color: bgColorBar,
+      color: header ? ScytheColors.brass : ScytheColors.parchment,
       fontSize: header ? 12.5 : 11,
       fontWeight: header ? FontWeight.bold : FontWeight.normal,
     );

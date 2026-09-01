@@ -117,6 +117,68 @@ void main() {
     });
   });
 
+  group('GamePage — Rust & Tesla motion', () {
+    testWidgets('countdown pulses at 12 seconds but not at 300 seconds',
+        (tester) async {
+      final fake = FakeSocketAdapter();
+      final built = _build(fake);
+      addTearDown(built.repository.dispose);
+      addTearDown(built.notifier.dispose);
+
+      await built.repository.createRoom(
+          nickname: 'Alice', faction: 'Crimea', mat: '1', timerSec: 900);
+      _seatAlice(fake);
+      await tester.pumpWidget(_gameUnderTest(built.repository, built.notifier));
+      await tester.pump();
+
+      expect(find.byKey(const ValueKey('countdown-pulse')), findsNothing);
+
+      fake.serverEmit('tick', {
+        'roomCode': 'AB3KMN',
+        'playerId': 'uuid-alice',
+        'remainingSec': 12,
+      });
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byKey(const ValueKey('countdown-pulse')), findsOneWidget);
+    });
+
+    testWidgets('lobby to game swap uses the standard AnimatedSwitcher',
+        (tester) async {
+      final fake = FakeSocketAdapter();
+      final built = _build(fake);
+      addTearDown(built.repository.dispose);
+      addTearDown(built.notifier.dispose);
+
+      await built.repository.createRoom(
+          nickname: 'Alice', faction: 'Crimea', mat: '1', timerSec: 900);
+      _seatAlice(fake, isJoin: true);
+      await tester.pumpWidget(_gameUnderTest(built.repository, built.notifier));
+      await tester.pump();
+
+      expect(find.text('Waiting for Players...'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('lobby-game-switcher')),
+        findsOneWidget,
+      );
+
+      fake.serverEmit('updateRoom', roomJson(isJoin: false));
+      await tester.pump();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 140));
+
+      expect(find.text('Waiting for Players...'), findsOneWidget);
+      expect(find.text('Turn Time Remaining:'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      await tester.pump(const Duration(milliseconds: 141));
+      await tester.pump();
+      expect(find.text('Waiting for Players...'), findsNothing);
+      expect(find.text('Turn Time Remaining:'), findsOneWidget);
+    });
+  });
+
   group('GamePage — pass button gating (T3.1 notifier.isMyTurn)', () {
     testWidgets('pass is enabled when this client is the active player',
         (tester) async {

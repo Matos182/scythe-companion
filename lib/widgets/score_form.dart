@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 import 'package:flutter/material.dart';
-import '../utils/colors.dart';
-import 'widgets.dart';
+import '../ui/theme.dart';
 
 /// Shared score input form for the Scythe Coin Calculator.
 ///
@@ -97,21 +96,9 @@ class ScoreForm extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(7, 12, 7, 12),
       child: TextFormField(
         controller: controller,
-        style: const TextStyle(color: buttonTextColor),
         decoration: InputDecoration(
           hintText: label,
-          hintStyle: const TextStyle(color: buttonTextColor),
-          prefixIcon: Icon(icon, color: buttonTextColor),
-          filled: true,
-          fillColor: bgColorBar,
-          focusedBorder: border,
-          enabledBorder: border,
-          errorBorder: border.copyWith(
-            borderSide: const BorderSide(color: Colors.red, width: 2),
-          ),
-          focusedErrorBorder: border.copyWith(
-            borderSide: const BorderSide(color: Colors.red, width: 2),
-          ),
+          prefixIcon: Icon(icon, color: ScytheColors.brass),
         ),
         keyboardType: keyboardType,
         validator: validator,

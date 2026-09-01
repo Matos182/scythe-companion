@@ -8,8 +8,9 @@ import '../domain/models/score_input.dart';
 import '../models/route_const.dart';
 import '../models/players.dart';
 import '../provider/room_data_provider.dart';
+import '../ui/backdrop.dart';
+import '../ui/theme.dart';
 import '../widgets/score_form.dart';
-import '../utils/colors.dart';
 
 /// [PlayerAddPage] allows users to input data for each player.
 /// Collects name, popularity, stars, lands, resources, building coins,
@@ -92,29 +93,17 @@ class _PlayerAddPageState extends State<PlayerAddPage> {
     final results = roomDataProvider.players;
 
     return Scaffold(
-      backgroundColor: bgColorBar,
       appBar: AppBar(
-        backgroundColor: bgColorBar,
-        title: const Text("Scythe Coin Calculator",
-            style: TextStyle(color: buttonTextColor)),
-        centerTitle: true,
+        title: const Text('Scythe Coin Calculator'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.home_rounded, color: buttonTextColor),
+            icon: const Icon(Icons.home_rounded),
             tooltip: 'Home',
-            onPressed: () {
-              context.go('/');
-            },
+            onPressed: () => context.go('/'),
           ),
         ],
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage("assets/background.png"),
-            fit: BoxFit.cover,
-          ),
-        ),
+      body: ScytheBackdrop(
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
           scrollDirection: Axis.vertical,
@@ -127,35 +116,21 @@ class _PlayerAddPageState extends State<PlayerAddPage> {
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: bgColorBar,
+                    color: ScytheColors.brass,
                   ),
                 ),
                 Form(
                   key: _formKey,
                   child: ScoreForm(controllers: controllers),
                 ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                Wrap(
+                  alignment: WrapAlignment.center,
                   children: [
                     Padding(
                       padding: const EdgeInsets.fromLTRB(7, 3, 7, 35),
                       child: ElevatedButton(
                         onPressed: playerCounter < 7 ? convert : null,
-                        style: ButtonStyle(
-                          elevation: const WidgetStatePropertyAll(7),
-                          backgroundColor:
-                              WidgetStateProperty.resolveWith<Color>((states) {
-                            if (states.contains(WidgetState.disabled)) {
-                              return const Color.fromARGB(255, 122, 120, 119);
-                            }
-                            return bgColorBar;
-                          }),
-                          foregroundColor:
-                              const WidgetStatePropertyAll(buttonTextColor),
-                          fixedSize:
-                              const WidgetStatePropertyAll(Size(150, 50)),
-                        ),
-                        child: const Text("Add Player"),
+                        child: const Text('Add Player'),
                       ),
                     ),
                     Padding(
@@ -170,21 +145,7 @@ class _PlayerAddPageState extends State<PlayerAddPage> {
                                 context.pushNamed(RouteNames.result);
                               }
                             : null,
-                        style: ButtonStyle(
-                          elevation: const WidgetStatePropertyAll(7),
-                          backgroundColor:
-                              WidgetStateProperty.resolveWith<Color>((states) {
-                            if (states.contains(WidgetState.disabled)) {
-                              return const Color.fromARGB(255, 122, 120, 119);
-                            }
-                            return bgColorBar;
-                          }),
-                          foregroundColor:
-                              const WidgetStatePropertyAll(buttonTextColor),
-                          fixedSize:
-                              const WidgetStatePropertyAll(Size(150, 50)),
-                        ),
-                        child: const Text("Show Results"),
+                        child: const Text('Show Results'),
                       ),
                     ),
                   ],

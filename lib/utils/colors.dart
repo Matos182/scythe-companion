@@ -1,24 +1,14 @@
 // SPDX-License-Identifier: MIT
 
-// App-wide colour palette.
-//
-// Kept as top-level `const`s so any widget can build a `const` style
-// without a BuildContext. The two names are easy to confuse:
-// - bgColor    — the lighter teal page background.
-// - bgColorBar — the darker slate used for AppBars and filled input
-//                backgrounds (light text sits on top of it).
-import 'package:flutter/material.dart';
+import '../ui/theme.dart';
 
-const bgColor = Color.fromARGB(255, 114, 142, 145);
-
-const bgColorBar = Color.fromARGB(225, 65, 77, 78);
-
-const buttonTextColor = Color.fromARGB(255, 156, 160, 160);
-
-const boxTextColor = Color.fromARGB(255, 156, 160, 160);
-
-const unavailableColor = Color.fromARGB(255, 122, 120, 119);
-
-const yourTurnColor = Color(0xff9c0303);
-
-const yourTurnText = Colors.white;
+// Compatibility aliases for pre-T5.3 call sites. New UI code imports the
+// centralized ScytheColors tokens directly.
+@Deprecated('T5.3: use ScytheColors in lib/ui/theme.dart')
+const bgColor = ScytheColors.coal;
+const bgColorBar = ScytheColors.gunmetal;
+const buttonTextColor = ScytheColors.parchment;
+const boxTextColor = ScytheColors.parchment;
+const unavailableColor = ScytheColors.disabled;
+const yourTurnColor = ScytheColors.rust;
+const yourTurnText = ScytheColors.parchment;

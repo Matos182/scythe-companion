@@ -5,8 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../domain/score_calculator.dart';
 import '../domain/models/score_input.dart';
 import '../models/players.dart';
+import '../ui/backdrop.dart';
+import '../ui/theme.dart';
 import '../widgets/score_form.dart';
-import '../utils/colors.dart';
 
 /// [SimplePage] is a StatefulWidget representing the simple calculator page.
 /// Users input data for a single player and convert all items to coins.
@@ -60,61 +61,53 @@ class _SimplePageState extends State<SimplePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        backgroundColor: bgColorBar,
-        appBar: AppBar(
-            backgroundColor: bgColorBar,
-            title: const Text("Scythe Coin Calculator",
-                style: TextStyle(color: buttonTextColor)),
-            centerTitle: true,
-            actions: [
-              IconButton(
-                  icon: const Icon(Icons.home_rounded, color: buttonTextColor),
-                  tooltip: 'Home',
-                  onPressed: () {
-                    context.go('/');
-                  }),
-            ]),
-        body: Container(
-            decoration: const BoxDecoration(
-                image: DecorationImage(
-                    image: AssetImage("assets/background.png"),
-                    fit: BoxFit.cover)),
-            child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                scrollDirection: Axis.vertical,
-                child: Center(
-                    child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: <Widget>[
-                      Text(
-                        "Player Total Coins ${player.result.toString()}",
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: bgColorBar,
-                        ),
-                      ),
-                      Form(
-                        key: _formKey,
-                        child: ScoreForm(
-                          controllers: controllers,
-                          onSubmit: convert,
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(7, 4, 7, 30),
-                        child: ElevatedButton(
-                            onPressed: convert,
-                            style: const ButtonStyle(
-                                elevation: WidgetStatePropertyAll(7),
-                                backgroundColor:
-                                    WidgetStatePropertyAll(bgColorBar),
-                                foregroundColor:
-                                    WidgetStatePropertyAll(buttonTextColor),
-                                fixedSize:
-                                    WidgetStatePropertyAll(Size(150, 50))),
-                            child: const Text("Convert")),
-                      ),
-                    ])))));
+      appBar: AppBar(
+        title: const Text('Scythe Coin Calculator'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.home_rounded),
+            tooltip: 'Home',
+            onPressed: () => context.go('/'),
+          ),
+        ],
+      ),
+      body: ScytheBackdrop(
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: Text(
+                    'Player Total Coins ${player.result}',
+                    style: const TextStyle(
+                      color: ScytheColors.brass,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Form(
+                  key: _formKey,
+                  child: ScoreForm(
+                    controllers: controllers,
+                    onSubmit: convert,
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(7, 4, 7, 30),
+                  child: ElevatedButton(
+                    onPressed: convert,
+                    child: const Text('Convert'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

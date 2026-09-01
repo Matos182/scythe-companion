@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import '../ui/theme.dart';
 import '../utils/qr_payload.dart';
 import '../utils/strings.dart';
 
@@ -48,10 +49,8 @@ class _QrScannerPageState extends State<QrScannerPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: ScytheColors.coal,
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
         title: const Text(QrScannerStrings.title),
         actions: [
           IconButton(
@@ -70,7 +69,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
                   padding: const EdgeInsets.all(24),
                   child: Text(
                     _describeError(error),
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(color: ScytheColors.parchment),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -85,7 +84,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
               width: 240,
               height: 240,
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.white70, width: 2),
+                border: Border.all(color: ScytheColors.brass, width: 2),
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
@@ -97,10 +96,10 @@ class _QrScannerPageState extends State<QrScannerPage> {
               right: 24,
               child: Container(
                 padding: const EdgeInsets.all(12),
-                color: Colors.black54,
+                color: ScytheColors.coal.withValues(alpha: 0.72),
                 child: Text(
                   _errorText!,
-                  style: const TextStyle(color: Colors.redAccent),
+                  style: const TextStyle(color: ScytheColors.danger),
                 ),
               ),
             ),
