@@ -132,7 +132,8 @@ class _JoinRoomState extends State<JoinRoom> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.recycling_rounded, color: buttonTextColor),
+            icon: const Icon(Icons.home_rounded, color: buttonTextColor),
+            tooltip: 'Home',
             onPressed: () {
               context.go('/');
             },

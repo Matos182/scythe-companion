@@ -10,14 +10,18 @@
 // boot-only test cannot catch it (this exact bug shipped in the T3.2
 // draft and was caught in review, not by tests).
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:scythe_companion/data/game_repository.dart';
 import 'package:scythe_companion/data/notifications.dart';
 import 'package:scythe_companion/data/session_store.dart';
 import 'package:scythe_companion/data/settings_repository.dart';
 import 'package:scythe_companion/data/socket_service.dart';
 import 'package:scythe_companion/main.dart';
+import 'package:scythe_companion/models/route_const.dart';
 
 import 'data/fake_socket_adapter.dart';
 
@@ -55,11 +59,9 @@ void main() {
     ];
 
     for (final (button, marker) in routes) {
-      // Fresh app per route: home.dart navigates with goNamed (replace,
-      // not push), so there is no back stack to pop. The unique key
-      // forces a NEW _MyAppState (and a new router) — pumping the same
-      // widget type reuses the old State, which would still be sitting
-      // on the previous route.
+      // Use a fresh app per route. The unique key forces a NEW
+      // _MyAppState (and a new router) — pumping the same widget type reuses
+      // the old State, which would still be sitting on the previous route.
       await tester.pumpWidget(MyApp(
         key: UniqueKey(),
         repository: buildRepository(),
@@ -83,6 +85,79 @@ void main() {
 
     expect(find.text('Settings'), findsOneWidget);
     expect(find.text('Server URL'), findsOneWidget);
+  });
+
+  testWidgets('create, join, settings, and result expose a back button',
+      (tester) async {
+    for (final routeName in [
+      RouteNames.create,
+      RouteNames.join,
+      RouteNames.settings,
+    ]) {
+      await tester.pumpWidget(MyApp(
+        key: UniqueKey(),
+        repository: buildRepository(),
+        notifications: notifications,
+      ));
+      await tester.pumpAndSettle();
+
+      tester.element(find.text('Scythe Companion').first).goNamed(routeName);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(BackButton), findsOneWidget,
+          reason: '$routeName should be nested under home');
+    }
+
+    await tester.pumpWidget(MyApp(
+      key: UniqueKey(),
+      repository: buildRepository(),
+      notifications: notifications,
+    ));
+    await tester.pumpAndSettle();
+    tester
+        .element(find.text('Scythe Companion').first)
+        .goNamed(RouteNames.addplayer);
+    await tester.pumpAndSettle();
+    unawaited(tester
+        .element(find.text('Player 1 Score'))
+        .pushNamed(RouteNames.result));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(BackButton), findsOneWidget);
+  });
+
+  testWidgets('goNamed create then back returns to home', (tester) async {
+    await tester.pumpWidget(
+        MyApp(repository: buildRepository(), notifications: notifications));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Create Room'));
+    await tester.pumpAndSettle();
+    expect(find.byType(BackButton), findsOneWidget);
+
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Simple Convert'), findsOneWidget);
+    expect(find.text('Game Results'), findsOneWidget);
+  });
+
+  testWidgets('result back returns to the players form', (tester) async {
+    await tester.pumpWidget(
+        MyApp(repository: buildRepository(), notifications: notifications));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Game Results'));
+    await tester.pumpAndSettle();
+    unawaited(tester
+        .element(find.text('Player 1 Score'))
+        .pushNamed(RouteNames.result));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Player 1 Score'), findsOneWidget);
   });
 }
 

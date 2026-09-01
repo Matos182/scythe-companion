@@ -55,9 +55,10 @@ class _ResultPageState extends State<ResultPage> {
         actions: [
           IconButton(
             icon: const Icon(
-              Icons.recycling_rounded,
+              Icons.home_rounded,
               color: buttonTextColor,
             ),
+            tooltip: 'Home',
             onPressed: () {
               context.go('/');
             },
