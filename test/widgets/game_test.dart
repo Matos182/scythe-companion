@@ -315,6 +315,33 @@ void main() {
       expect(fake.sentEvents.length, sentBefore);
     });
 
+    testWidgets('system back asks for confirmation and cancel keeps the game',
+        (tester) async {
+      final fake = FakeSocketAdapter();
+      final built = _build(fake);
+      addTearDown(built.repository.dispose);
+      addTearDown(built.notifier.dispose);
+
+      await built.repository.createRoom(
+          nickname: 'Alice', faction: 'Crimea', mat: '1', timerSec: 900);
+      _seatAlice(fake);
+      final sentBefore = fake.sentEvents.length;
+      await tester.pumpWidget(_gameUnderTest(built.repository, built.notifier));
+      await tester.pump();
+      await tester.pump();
+
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Leave the game?'), findsOneWidget);
+      await tester.tap(find.text('Stay'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(GamePage), findsOneWidget);
+      expect(built.notifier.room.id, 'AB3KMN');
+      expect(fake.sentEvents.length, sentBefore);
+    });
+
     testWidgets('confirming leave calls leaveSession on the notifier',
         (tester) async {
       final fake = FakeSocketAdapter();

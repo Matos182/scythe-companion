@@ -68,8 +68,8 @@ class _SimplePageState extends State<SimplePage> {
             centerTitle: true,
             actions: [
               IconButton(
-                  icon: const Icon(Icons.recycling_rounded,
-                      color: buttonTextColor),
+                  icon: const Icon(Icons.home_rounded, color: buttonTextColor),
+                  tooltip: 'Home',
                   onPressed: () {
                     context.go('/');
                   }),

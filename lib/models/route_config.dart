@@ -14,9 +14,8 @@ import './route_const.dart';
 
 /// Router wiring for the whole app (go_router, D3/E4).
 ///
-/// One nested tree: the offline-calculator pages (`simple`, `game`,
-/// `addPlayer`) hang off the home `/` route; the multiplayer and settings
-/// pages (`/create`, `/join`, `/result`, `/settings`) are top-level.
+/// One nested tree: every destination hangs off the home `/` route so
+/// navigating by name still builds a poppable home → destination stack.
 /// Navigation is always by *name* (`context.goNamed(RouteNames.x)`) so the
 /// paths stay in one place — see `route_const.dart`.
 class MyRouter {
@@ -27,6 +26,7 @@ class MyRouter {
           child: Scaffold(appBar: AppBar(title: const Text('ERROR')))),
       routes: <RouteBase>[
         GoRoute(
+            name: RouteNames.home,
             path: '/',
             builder: ((context, state) => const HomePage()),
             routes: <RouteBase>[
@@ -41,24 +41,24 @@ class MyRouter {
               GoRoute(
                   name: RouteNames.addplayer,
                   path: 'addPlayer',
-                  builder: ((context, state) => const PlayerAddPage()))
+                  builder: ((context, state) => const PlayerAddPage())),
+              GoRoute(
+                  name: RouteNames.create,
+                  path: 'create',
+                  builder: ((context, state) => const CreateRoom())),
+              GoRoute(
+                  name: RouteNames.join,
+                  path: 'join',
+                  builder: ((context, state) => const JoinRoom())),
+              GoRoute(
+                  name: RouteNames.result,
+                  path: 'result',
+                  builder: ((context, state) => const ResultPage())),
+              GoRoute(
+                  name: RouteNames.settings,
+                  path: 'settings',
+                  builder: ((context, state) => const SettingsPage())),
             ]),
-        GoRoute(
-            name: RouteNames.create,
-            path: '/create',
-            builder: ((context, state) => const CreateRoom())),
-        GoRoute(
-            name: RouteNames.join,
-            path: '/join',
-            builder: ((context, state) => const JoinRoom())),
-        GoRoute(
-            name: RouteNames.result,
-            path: '/result',
-            builder: ((context, state) => const ResultPage())),
-        GoRoute(
-            name: RouteNames.settings,
-            path: '/settings',
-            builder: ((context, state) => const SettingsPage())),
       ]);
 
   void dispose() {

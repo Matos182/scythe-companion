@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: MIT
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import '../data/socket_service.dart';
+import '../models/route_const.dart';
 import '../provider/room_notifier.dart';
 import '../utils/colors.dart';
 import '../utils/strings.dart';
@@ -36,6 +40,8 @@ class _GamePageState extends State<GamePage> {
   // (main.dart's guarded listener) when the app is backgrounded. The
   // wakelock below keeps the screen on during your own turn, which only
   // helps while the app is foregrounded.
+  bool _leaveConfirmationOpen = false;
+  bool _allowPop = false;
 
   @override
   void initState() {
@@ -50,6 +56,40 @@ class _GamePageState extends State<GamePage> {
   void dispose() {
     WakelockPlus.disable();
     super.dispose();
+  }
+
+  Future<void> _confirmSystemLeave(bool didPop) async {
+    if (didPop || _allowPop || _leaveConfirmationOpen) return;
+    _leaveConfirmationOpen = true;
+    try {
+      final notifier = context.read<RoomNotifier>();
+      final isInGame = !notifier.room.isJoin;
+      final confirmed = await confirmLeave(
+        context,
+        title: isInGame
+            ? LeaveDialogStrings.gameTitle
+            : LeaveDialogStrings.lobbyTitle,
+        message: isInGame
+            ? LeaveDialogStrings.gameMessage
+            : LeaveDialogStrings.lobbyMessage,
+      );
+      if (!confirmed || !mounted) return;
+
+      await notifier.leaveSession();
+      if (mounted) context.goNamed(RouteNames.home);
+    } finally {
+      _leaveConfirmationOpen = false;
+    }
+  }
+
+  void _popAfterExplicitLeave() {
+    if (!mounted) return;
+    setState(() => _allowPop = true);
+    // PopScope registers canPop during build. Wait for that rebuild before
+    // the explicit AppBar leave action performs its existing Navigator.pop.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) Navigator.of(context).pop();
+    });
   }
 
   String _formatTime(int seconds) {
@@ -75,32 +115,41 @@ class _GamePageState extends State<GamePage> {
         connectionState == SocketConnectionState.reconnecting ||
             connectionState == SocketConnectionState.disconnected;
 
-    return Scaffold(
-      backgroundColor: bgColor,
-      appBar: AppBar(
-        backgroundColor: bgColorBar,
-        title: const Text(
-          GameStrings.title,
-          style: TextStyle(color: buttonTextColor),
-        ),
-        centerTitle: true,
-        actions: [
-          _PauseResumeAction(isMyTurn: isMyTurn, isPaused: room.isPaused),
-          // T3.5: leave button (T3.5 confirm-leave dialog). Sits
-          // next to the pause/resume action so a mid-turn exit is
-          // explicit, not accidental.
-          _LeaveAction(isInGame: !room.isJoin),
-        ],
-      ),
-      body: Column(
-        children: [
-          if (showOfflineBanner) _ReconnectBanner(connectionState),
-          Expanded(
-            child: room.isJoin
-                ? const LobbyPage()
-                : _ActiveGameView(formatTime: _formatTime),
+    return PopScope<void>(
+      canPop: _allowPop,
+      onPopInvokedWithResult: (didPop, result) {
+        unawaited(_confirmSystemLeave(didPop));
+      },
+      child: Scaffold(
+        backgroundColor: bgColor,
+        appBar: AppBar(
+          backgroundColor: bgColorBar,
+          title: const Text(
+            GameStrings.title,
+            style: TextStyle(color: buttonTextColor),
           ),
-        ],
+          centerTitle: true,
+          actions: [
+            _PauseResumeAction(isMyTurn: isMyTurn, isPaused: room.isPaused),
+            // T3.5: leave button (T3.5 confirm-leave dialog). Sits
+            // next to the pause/resume action so a mid-turn exit is
+            // explicit, not accidental.
+            _LeaveAction(
+              isInGame: !room.isJoin,
+              onReadyToPop: _popAfterExplicitLeave,
+            ),
+          ],
+        ),
+        body: Column(
+          children: [
+            if (showOfflineBanner) _ReconnectBanner(connectionState),
+            Expanded(
+              child: room.isJoin
+                  ? const LobbyPage()
+                  : _ActiveGameView(formatTime: _formatTime),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -310,9 +359,13 @@ class _PlayersTable extends StatelessWidget {
 /// (pre-game). Lobby uses a softer message because no game state
 /// exists yet.
 class _LeaveAction extends StatelessWidget {
-  const _LeaveAction({required this.isInGame});
+  const _LeaveAction({
+    required this.isInGame,
+    required this.onReadyToPop,
+  });
 
   final bool isInGame;
+  final VoidCallback onReadyToPop;
 
   @override
   Widget build(BuildContext context) {
@@ -335,7 +388,7 @@ class _LeaveAction extends StatelessWidget {
         // in main.dart ensures no double-fire, and the navigator key
         // isn't required here (we pop explicitly).
         await context.read<RoomNotifier>().leaveSession();
-        if (context.mounted) Navigator.of(context).pop();
+        if (context.mounted) onReadyToPop();
       },
     );
   }
