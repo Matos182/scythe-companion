@@ -213,4 +213,44 @@ describe('RoomStore', () => {
       store.stopSweeper();
     });
   });
+
+  describe('removePlayer', () => {
+    function threePlayerGame() {
+      const { room } = store.create({
+        nickname: 'Alice', playerfaction: 'Crimea', playermat: '1', timer: 60,
+      });
+      store.join(room._id, { nickname: 'Bob', playerfaction: 'Saxony', playermat: '2' });
+      store.join(room._id, { nickname: 'Carol', playerfaction: 'Polania', playermat: '2A' });
+      store.startGame(room._id);
+      return room._id;
+    }
+
+    it('keeps turnIndex on the current player when an earlier seat is removed', () => {
+      const code = threePlayerGame();
+      store.passTurn(code);
+      store.passTurn(code);
+      const bobId = store.get(code).players.find((p) => p.nickname === 'Bob')._id;
+      expect(store.get(code).turn.nickname).toBe('Carol');
+
+      store.removePlayer(code, bobId);
+
+      const after = store.get(code);
+      expect(after.players.map((p) => p.nickname)).toEqual(['Alice', 'Carol']);
+      expect(after.turn.nickname).toBe('Carol');
+      expect(after.turnIndex).toBe(
+        after.players.findIndex((p) => p.nickname === 'Carol'),
+      );
+      expect(after.turn._id).toBe(after.players[after.turnIndex]._id);
+    });
+
+    it('does not skip the next player after removing an earlier seat', () => {
+      const code = threePlayerGame();
+      store.passTurn(code);
+      store.passTurn(code);
+      const bobId = store.get(code).players.find((p) => p.nickname === 'Bob')._id;
+      store.removePlayer(code, bobId);
+      const passed = store.passTurn(code);
+      expect(passed.turn.nickname).toBe('Alice');
+    });
+  });
 });
