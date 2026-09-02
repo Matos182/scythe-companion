@@ -25,6 +25,7 @@ const startedAt = Date.now();
 
 beforeAll(() => {
   const app = express();
+  app.disable('x-powered-by');
   app.get('/healthz', (_req, res) => {
     res.json({
       status: 'ok',
@@ -200,5 +201,6 @@ describe('hardening: /healthz expansion', () => {
     expect(body).toHaveProperty('maxRooms');
     expect(typeof body.uptime).toBe('number');
     expect(body.uptime).toBeGreaterThanOrEqual(0);
+    expect(res.headers.get('x-powered-by')).toBeNull();
   });
 });

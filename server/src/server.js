@@ -23,6 +23,7 @@ import * as timerEngine from './timerEngine.js';
 import logger from './logger.js';
 
 const app = express();
+app.disable('x-powered-by');
 app.use(express.json());
 
 const startedAt = Date.now();
