@@ -13,9 +13,10 @@
  * limiting is enforced at connection time, and structured logging
  * replaces console.log.
  *
- * T4.7c authorization: startGame/turn/pause/resume require the sender
+ * T4.7c authorization: start/turn/pause/resume require the sender
  * to be seated in the room they target (socket.data.roomCode), and
  * `turn` additionally requires turn ownership (STATE_NOT_YOUR_TURN).
+ * startGame and removePlayer are also creator-only (AUTH_NOT_CREATOR).
  */
 
 import { RoomStore } from './roomStore.js';
@@ -69,6 +70,29 @@ function requireRoomMembership(socket, roomId) {
   socket.emit(ERROR_OCCURRED, errorEnvelope(
     ERROR_CODES.AUTH_NOT_IN_ROOM,
     'You are not a player in that room.',
+  ));
+  return false;
+}
+
+/**
+ * Creator-only actions (startGame, removePlayer). Trusts
+ * socket.data.playerId stamped at create/join/rejoin, not a client claim.
+ *
+ * @param {import('socket.io').Socket} socket
+ * @param {{ _id: string, creator: { _id: string } }} room
+ * @param {string} message — human-readable AUTH_NOT_CREATOR text
+ * @returns {boolean} true when the socket is the room creator
+ */
+function requireCreator(socket, room, message) {
+  if (room.creator._id === socket.data.playerId) return true;
+  logger.warn({
+    socketId: socket.id,
+    roomId: room._id,
+    playerId: socket.data.playerId,
+  }, 'action rejected: sender is not the room creator');
+  socket.emit(ERROR_OCCURRED, errorEnvelope(
+    ERROR_CODES.AUTH_NOT_CREATOR,
+    message,
   ));
   return false;
 }
@@ -200,6 +224,10 @@ export function registerHandlers(io, store, options = {}) {
           ERROR_CODES.STATE_ROOM_NOT_FOUND,
           'Room not found.',
         ));
+        return;
+      }
+
+      if (!requireCreator(socket, room, 'Only the room creator can start the game.')) {
         return;
       }
 
@@ -386,18 +414,7 @@ export function registerHandlers(io, store, options = {}) {
         return;
       }
 
-      // Creator-only (same trust basis as T4.7c: server-stamped
-      // socket.data.playerId, not a client claim).
-      if (room.creator._id !== socket.data.playerId) {
-        logger.warn({
-          socketId: socket.id,
-          roomId,
-          playerId: socket.data.playerId,
-        }, 'removePlayer rejected: sender is not the room creator');
-        socket.emit(ERROR_OCCURRED, errorEnvelope(
-          ERROR_CODES.AUTH_NOT_CREATOR,
-          'Only the room creator can remove players.',
-        ));
+      if (!requireCreator(socket, room, 'Only the room creator can remove players.')) {
         return;
       }
 

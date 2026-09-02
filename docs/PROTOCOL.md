@@ -2,7 +2,7 @@
 
 **Protocol version:** 1  
 **Transport:** socket.io (client 3.x ↔ server 4.x)  
-**Last updated:** 2026-08-31 (T4.7c — room-action authorization)
+**Last updated:** 2026-09-02 (startGame creator-only)
 
 > A `protocolVersion` field is included in the `/healthz` HTTP response.
 > The client probes `/healthz` before opening the socket; if its expected
@@ -121,7 +121,7 @@ Closes the room, runs the faction wheel, sets first player.
 
 **Server response:** `updateRoom` (to the room) with reordered players + first turn.
 
-**Errors:** `errorOccurred` — "Room not found.", "You aren't playing with Automa!!" (single-player room), "You are not a player in that room." (`AUTH_NOT_IN_ROOM`, T4.7c — sender not seated in `roomId`)
+**Errors:** `errorOccurred` — "Room not found.", "You aren't playing with Automa!!" (single-player room), "You are not a player in that room." (`AUTH_NOT_IN_ROOM`, T4.7c — sender not seated in `roomId`), "Only the room creator can start the game." (`AUTH_NOT_CREATOR` — seated non-creator)
 
 ---
 
@@ -291,7 +291,7 @@ All `errorOccurred` events carry a structured envelope instead of a bare string:
 | `VAL_INVALID_MAT` | Validation | Player mat not in the valid set |
 | `VAL_BAD_PAYLOAD` | Validation | Payload is not a non-null object |
 | `AUTH_NOT_IN_ROOM` | Auth | Sender not seated in the room they target (T4.7c) |
-| `AUTH_NOT_CREATOR` | Auth | Sender is not the room creator (T5.4 removePlayer) |
+| `AUTH_NOT_CREATOR` | Auth | Sender is not the room creator (startGame, T5.4 removePlayer) |
 | `STATE_ROOM_NOT_FOUND` | State | Room does not exist |
 | `STATE_GAME_IN_PROGRESS` | State | Room closed (game started) |
 | `STATE_FACTION_OR_MAT_TAKEN` | State | Faction/mat already chosen |

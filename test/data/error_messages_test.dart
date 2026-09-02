@@ -22,6 +22,9 @@ void main() {
         'VAL_INVALID_FACTION',
         'VAL_INVALID_MAT',
         'VAL_BAD_PAYLOAD',
+        // Auth
+        'AUTH_NOT_IN_ROOM',
+        'AUTH_NOT_CREATOR',
         // State
         'STATE_ROOM_NOT_FOUND',
         'STATE_GAME_IN_PROGRESS',
@@ -29,6 +32,7 @@ void main() {
         'STATE_SINGLE_PLAYER',
         'STATE_NOT_YOUR_TURN',
         'STATE_PASS_FAILED',
+        'STATE_PLAYER_CONNECTED',
         // Rejoin
         'REJOIN_NOT_FOUND',
         // Rate
