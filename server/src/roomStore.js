@@ -329,6 +329,54 @@ export class RoomStore {
   }
 
   /**
+   * Remove a player from a room (T5.4 creator seat management).
+   *
+   * Frees the removed player's faction/mat seat so a fresh join can take
+   * it. Only the handler decides WHO may remove; this method only
+   * validates that the target exists.
+   *
+   * When the removed player was the current turn player, the turn
+   * advances to the next player (wrapping, same rule as passTurn) and
+   * their allowance is topped up to minTurnSec. The caller restarts the
+   * timer engine either way.
+   *
+   * @param {string} roomCode
+   * @param {string} playerId — player to remove
+   * @returns {Room | null} updated room, or null when room/player missing
+   */
+  removePlayer(roomCode, playerId) {
+    const room = this.rooms.get(roomCode);
+    if (!room) return null;
+    const index = room.players.findIndex((p) => p._id === playerId);
+    if (index === -1) return null;
+
+    room.players.splice(index, 1);
+
+    if (room.players.length === 0) {
+      // Nobody left — drop the room entirely.
+      this.rooms.delete(roomCode);
+      return null;
+    }
+
+    if (room.turn && room.turn._id === playerId) {
+      // Removed player had the turn: move it to the next remaining
+      // player (same position wraps to 0). passTurn() would walk from
+      // the OLD index, so set the turn explicitly here.
+      if (room.turnIndex >= room.players.length) {
+        room.turnIndex = 0;
+        room.totalTurns++;
+      }
+      room.turn = room.players[room.turnIndex];
+      if (room.turn.remainingSec < minTurnSec) {
+        room.turn.remainingSec = minTurnSec;
+      }
+    }
+
+    room.lastActivity = Date.now();
+    return room;
+  }
+
+  /**
    * Is the given player the current turn player?
    * @param {string} roomCode
    * @param {string} playerId

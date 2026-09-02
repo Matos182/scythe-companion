@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../data/game_repository.dart';
+import '../domain/models/player.dart';
 import '../provider/room_notifier.dart';
 import '../ui/panel_card.dart';
 import '../ui/theme.dart';
@@ -56,6 +57,7 @@ class _LobbyPageState extends State<LobbyPage> {
   Widget build(BuildContext context) {
     final notifier = context.watch<RoomNotifier>();
     final room = notifier.room;
+    final isCreator = notifier.isCreator;
     final repository = context.read<GameRepository>();
     final serverUrl = repository.currentServerUrl;
     final roomCode = room.id;
@@ -112,18 +114,64 @@ class _LobbyPageState extends State<LobbyPage> {
               label: Center(widthFactor: 0.8, child: Text('Faction')),
             ),
             DataColumn(label: Center(widthFactor: 0.5, child: Text('Mat'))),
+            // T5.4: remove affordance column — empty header, only
+            // creators get cells in it.
+            DataColumn(label: Text('')),
           ],
           rows: room.players.map<DataRow>((player) {
+            final displayName = player.connected
+                ? player.nickname
+                : '${player.nickname} ${GameStrings.offlineSuffix}';
             return DataRow(
               cells: <DataCell>[
-                DataCell(Text(player.nickname, textAlign: TextAlign.center)),
+                DataCell(
+                  Text(
+                    displayName,
+                    textAlign: TextAlign.center,
+                    style: player.connected
+                        ? null
+                        : const TextStyle(color: ScytheColors.disabled),
+                  ),
+                ),
                 DataCell(
                   Text(
                     player.playerfaction,
-                    style: const TextStyle(fontStyle: FontStyle.italic),
+                    style: TextStyle(
+                      fontStyle: FontStyle.italic,
+                      color: player.connected ? null : ScytheColors.disabled,
+                    ),
                   ),
                 ),
-                DataCell(Text(player.playermat)),
+                DataCell(
+                  Text(
+                    player.playermat,
+                    style: player.connected
+                        ? null
+                        : const TextStyle(color: ScytheColors.disabled),
+                  ),
+                ),
+                if (isCreator)
+                  DataCell(
+                    // Only for disconnected players — the server enforces
+                    // the same rule (STATE_PLAYER_CONNECTED).
+                    player.connected
+                        ? const SizedBox.shrink()
+                        : IconButton(
+                            key: ValueKey('lobby-remove-${player.id}'),
+                            visualDensity: VisualDensity.compact,
+                            iconSize: 18,
+                            padding: EdgeInsets.zero,
+                            tooltip: 'Remove player',
+                            icon: const Icon(
+                              Icons.person_remove,
+                              color: ScytheColors.danger,
+                            ),
+                            onPressed: () =>
+                                _confirmRemove(context, notifier, player),
+                          ),
+                  )
+                else
+                  const DataCell(SizedBox.shrink()),
               ],
             );
           }).toList(),
@@ -140,5 +188,35 @@ class _LobbyPageState extends State<LobbyPage> {
         ),
       ],
     );
+  }
+
+  Future<void> _confirmRemove(
+    BuildContext context,
+    RoomNotifier notifier,
+    Player player,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Remove player'),
+        content: Text(
+          'Remove ${player.nickname} and free their faction/mat for '
+          'someone else?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      notifier.removePlayer(player.id);
+    }
   }
 }

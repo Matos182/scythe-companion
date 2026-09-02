@@ -72,6 +72,8 @@ const Map<String, String> _messages = {
   'STATE_NOT_YOUR_TURN':
       "It's not your turn yet — only the current player can pass.",
   'STATE_PASS_FAILED': "The turn couldn't be passed. Please try again.",
+  'STATE_PLAYER_CONNECTED':
+      "That player is still connected — you can only remove players who've left.",
 
   // ── Rejoin (REJOIN_*) — the stored session is dead ───────────────
   'REJOIN_NOT_FOUND':
