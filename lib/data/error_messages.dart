@@ -59,6 +59,8 @@ const Map<String, String> _messages = {
   // ── Authorization (AUTH_*) — server says you're not allowed (T4.7c) ──
   'AUTH_NOT_IN_ROOM':
       "You can only act on a game you're playing in. If you were disconnected, reopen the room to rejoin.",
+  'AUTH_NOT_CREATOR':
+      "Only the room creator can start the game or remove a player.",
 
   // ── State (STATE_*) — the game is in the wrong shape ─────────────
   'STATE_ROOM_NOT_FOUND':

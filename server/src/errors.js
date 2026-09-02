@@ -27,7 +27,7 @@ export const ERROR_CODES = Object.freeze({
 
   // Authorization (T4.7c)
   AUTH_NOT_IN_ROOM: 'AUTH_NOT_IN_ROOM',
-  // Authorization (T5.4 creator seat management)
+  // Authorization (startGame + T5.4 removePlayer)
   AUTH_NOT_CREATOR: 'AUTH_NOT_CREATOR',
 
   // State
