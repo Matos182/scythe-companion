@@ -49,6 +49,12 @@ class Room {
   /// Convenience: whether the game is paused.
   bool get isPaused => turnState.isPaused;
 
+  /// T5.7: omitted/null = ordinary pause; `'combat'` = table fight.
+  String? get pauseReason => turnState.pauseReason;
+
+  /// Combat pause — every connected client should show the fight overlay.
+  bool get isCombatPause => turnState.isCombatPause;
+
   factory Room.fromJson(Map<String, dynamic> json) {
     return Room(
       id: json['_id'] as String? ?? '',
@@ -87,5 +93,6 @@ class Room {
         'turnIndex': turnState.turnIndex,
         'totalTurns': turnState.totalTurns,
         'isPaused': turnState.isPaused,
+        if (turnState.pauseReason != null) 'pauseReason': turnState.pauseReason,
       };
 }

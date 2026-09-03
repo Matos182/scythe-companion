@@ -4,6 +4,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import './data/combat_cue.dart';
 import './data/error_messages.dart';
 import './data/game_repository.dart';
 import './data/notifications.dart';
@@ -57,10 +58,14 @@ class MyApp extends StatefulWidget {
     super.key,
     required this.repository,
     required this.notifications,
+    this.combatCue,
   });
 
   final GameRepository repository;
   final NotificationService notifications;
+
+  /// Optional so tests can stub the haptic/sound without a plugin.
+  final CombatCue? combatCue;
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -71,6 +76,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   final _messengerKey = GlobalKey<ScaffoldMessengerState>();
   late final RoomNotifier _roomNotifier;
   late final NotificationService _notifications;
+  late final CombatCue _combatCue;
 
   /// One-shot context for the boot-time `rejoinSavedSession` (T3.3
   /// hand-off debt 5b). The repository silently attempts to resume a
@@ -85,6 +91,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     super.initState();
     _roomNotifier = RoomNotifier(widget.repository);
     _notifications = widget.notifications;
+    _combatCue = widget.combatCue ?? CombatCue();
     WidgetsBinding.instance.addObserver(this);
     // THE single guarded listener (audit A10): all navigation-from-socket
     // and error snackbars happen here — never inside socket callbacks
@@ -152,6 +159,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       unawaited(_notifications.announceYourTurn(nickname: nickname));
     }
 
+    // T5.7: one cry + heavy haptic on the transition into combat.
+    // Do not cancel the generic notification channel.
+    if (_roomNotifier.consumeJustEnteredCombatFlag()) {
+      unawaited(_combatCue.fire());
+    }
+
     final error = _roomNotifier.lastError;
     if (error != null) {
       _roomNotifier.clearError();
@@ -170,6 +183,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     _roomNotifier.removeListener(_onRoomEvent);
     _roomNotifier.dispose();
     widget.repository.dispose();
+    unawaited(_combatCue.dispose());
     _router.dispose();
     super.dispose();
   }

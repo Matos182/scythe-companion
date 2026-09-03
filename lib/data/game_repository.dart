@@ -246,6 +246,7 @@ class GameRepository {
   void passTurn(String roomCode) => _socket.passTurn(roomCode);
   void pause(String roomCode) => _socket.pause(roomCode);
   void resume(String roomCode) => _socket.resume(roomCode);
+  void combat(String roomCode) => _socket.combat(roomCode);
 
   /// T5.4: creator removes a disconnected player, freeing their seat.
   void removePlayer(String roomCode, String playerId) =>
