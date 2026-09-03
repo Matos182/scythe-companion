@@ -44,6 +44,7 @@ const TTL_MS = roomTtlHours * 60 * 60 * 1000;
  * @property {number} turnIndex
  * @property {number} totalTurns
  * @property {boolean} isPaused
+ * @property {string|null|undefined} pauseReason — 'combat' or omitted/null
  * @property {Player[]} players
  * @property {Player} turn
  * @property {Player} creator
@@ -173,6 +174,7 @@ export class RoomStore {
     room.turn = room.players[0];
     room.turnIndex = 0;
     room.isPaused = false;
+    room.pauseReason = null;
     // Reset remainingSec for all players to their allowance (A6)
     for (const p of room.players) {
       p.remainingSec = p.timer;
@@ -206,6 +208,7 @@ export class RoomStore {
       room.turn.remainingSec = minTurnSec;
     }
     room.isPaused = false;
+    room.pauseReason = null;
     room.lastActivity = Date.now();
     return room;
   }
@@ -220,6 +223,23 @@ export class RoomStore {
     const room = this.rooms.get(roomCode);
     if (!room) return null;
     room.isPaused = paused;
+    if (!paused) {
+      room.pauseReason = null;
+    }
+    room.lastActivity = Date.now();
+    return room;
+  }
+
+  /**
+   * Tag why the room is paused. Ordinary pause/disconnect leave this null.
+   * @param {string} roomCode
+   * @param {string|null} reason
+   * @returns {Room | null}
+   */
+  setPauseReason(roomCode, reason) {
+    const room = this.rooms.get(roomCode);
+    if (!room) return null;
+    room.pauseReason = reason;
     room.lastActivity = Date.now();
     return room;
   }
@@ -424,7 +444,7 @@ export class RoomStore {
    * @returns {object}
    */
   static serialize(room) {
-    return {
+    const wire = {
       _id: room._id,
       isJoin: room.isJoin,
       turnIndex: room.turnIndex,
@@ -461,6 +481,11 @@ export class RoomStore {
         connected: room.creator.connected,
       } : null,
     };
+    // Additive (T5.7): omit when null so mixed APKs see the old shape.
+    if (room.pauseReason) {
+      wire.pauseReason = room.pauseReason;
+    }
+    return wire;
   }
 
   /** Generate a room code that doesn't collide with existing rooms. */

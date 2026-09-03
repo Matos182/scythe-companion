@@ -2,7 +2,7 @@
 
 **Protocol version:** 1  
 **Transport:** socket.io (client 3.x ↔ server 4.x)  
-**Last updated:** 2026-09-02 (startGame creator-only)
+**Last updated:** 2026-09-03 (T5.7 combat pause — additive, protocolVersion stays 1)
 
 > A `protocolVersion` field is included in the `/healthz` HTTP response.
 > The client probes `/healthz` before opening the socket; if its expected
@@ -23,6 +23,7 @@ events carry a serialized room object:
   "turnIndex": 0,
   "totalTurns": 1,
   "isPaused": false,
+  "pauseReason": null,
   "players": [
     {
       "_id": "550e8400-e29b-41d4-a716-446655440000",
@@ -46,6 +47,7 @@ events carry a serialized room object:
 | `turnIndex` | int | Index into `players[]` for current turn |
 | `totalTurns` | int | Round counter (starts at 1) |
 | `isPaused` | boolean | Game paused? |
+| `pauseReason` | string \| omitted | **T5.7, additive.** Omitted or `null` = ordinary pause (manual or disconnect). `"combat"` = table-fight pause. Missing key ⇒ not combat. `protocolVersion` stays 1. |
 | `players[]` | array | Seated players, in turn order after faction wheel |
 | `turn` | object | Current player (reference into players[]) |
 | `creator` | object | Room creator |
@@ -161,10 +163,40 @@ continues from where it left off.  Requires room membership (T4.7c —
 
 ---
 
+#### `combat` (T5.7 — additive, protocolVersion stays 1)
+
+Starts a **combat pause**: the current-turn player is resolving a fight
+on the physical board. The timer pauses (`remainingSec` preserved) and
+`pauseReason` is set to `"combat"` so every client can show the fight
+overlay. Resume with the existing `toContinue` event (which also clears
+`pauseReason`). There is no separate `combatEnded` event.
+
+Current-turn player only (server-enforced). Rejected in the lobby
+(`isJoin`). Ordinary `pause` does **not** set `pauseReason` to combat.
+Disconnect auto-pause does **not** set combat. Rejoin auto-resume of
+the current-turn player runs only when `pauseReason` is not `"combat"`.
+
+```json
+{
+  "roomId": "AB3KMN"
+}
+```
+
+**Server response:** `updateRoom` (to the room) with `isPaused: true`
+and `pauseReason: "combat"`.
+
+**Errors:** `errorOccurred` — "Room not found.", "You are not a player
+in that room." (`AUTH_NOT_IN_ROOM`), "It's not your turn."
+(`STATE_NOT_YOUR_TURN`), "The game has not started." (`VAL_BAD_PAYLOAD`
+when still in lobby).
+
+---
+
 #### `toContinue`
 
 Resumes the game timer. Wire name kept as `toContinue` for backward
-compatibility; renamed to `resume` in Dart code (T1.4).
+compatibility; renamed to `resume` in Dart code (T1.4). Also clears
+`pauseReason` (T5.7) so a combat pause returns to a live clock.
 
 ```json
 {
@@ -200,7 +232,9 @@ create/join.
 
 If the player was the current turn player and the timer was auto-paused on
 their disconnect, the server also resumes the timer and broadcasts the
-un-paused state.
+un-paused state. **Exception (T5.7):** a combat pause (`pauseReason ===
+"combat"`) is not auto-resumed on rejoin — the fight stays paused until
+the current-turn player emits `toContinue`.
 
 **Errors:** `errorOccurred` — "Room code and player ID are required.", "Room or player not found."
 
