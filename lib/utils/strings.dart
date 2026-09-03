@@ -60,9 +60,9 @@ class SettingsStrings {
   static String probeSaved(int version) =>
       'Server OK (protocol v$version) — saved.';
 
-  static const notificationsTitle = 'Your-turn alerts';
+  static const notificationsTitle = 'On-screen turn alerts';
   static const notificationsSubtitle =
-      'Vibrate, play a sound, and show a heads-up when it is your turn.';
+      'Buzz while you are looking at the game. Homed phones always alert.';
   static const aboutTileTitle = 'About';
 }
 

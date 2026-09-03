@@ -6,10 +6,10 @@
 /// The old app spawned a background isolate with its own socket — a phantom
 /// connection that could never see UI-side room state. This service is much
 /// simpler: the composition root fires [announceYourTurn] when `newTurn`
-/// makes it this device's turn (T5.5: foreground AND background). The phone
-/// always buzzes + plays a sound; a heads-up tray item covers the case
-/// where the user is looking away. The in-page banner + wakelock from T3.3
-/// still run.
+/// makes it this device's turn. Backgrounded phones always shout; the
+/// Settings switch only mutes the on-screen buzz. A heads-up tray item
+/// covers the case where the user is looking away. The in-page banner +
+/// wakelock from T3.3 still run.
 ///
 /// Design rules:
 /// - Widgets never call this directly. The composition root in `main.dart`
