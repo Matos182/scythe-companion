@@ -42,6 +42,7 @@ void main() async {
     sessionStore: SharedPrefsSessionStore(),
     settingsRepository: settingsRepository,
     initialServerUrl: initialUrl,
+    notificationsEnabled: settings.notificationsEnabled,
   );
   // T3.4: initialize the local notification plugin before the first
   // frame. No-op on non-Android platforms (D6); the plugin's method
@@ -71,6 +72,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   final _messengerKey = GlobalKey<ScaffoldMessengerState>();
   late final RoomNotifier _roomNotifier;
   late final NotificationService _notifications;
+  AppLifecycleState _lifecycle = AppLifecycleState.resumed;
 
   /// One-shot context for the boot-time `rejoinSavedSession` (T3.3
   /// hand-off debt 5b). The repository silently attempts to resume a
@@ -100,12 +102,15 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // T5.5: coming back to the game screen, the in-page banner is
-    // enough — clear the tray item so it doesn't linger at the table.
+    _lifecycle = state;
+    // Coming back to the game screen, the in-page banner is enough —
+    // clear the tray item so it doesn't linger at the table.
     if (state == AppLifecycleState.resumed) {
       unawaited(_notifications.cancel());
     }
   }
+
+  bool get _isBackgrounded => _lifecycle != AppLifecycleState.resumed;
 
   Future<void> _attemptBootRejoin() async {
     try {
@@ -143,11 +148,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       }
     }
 
-    // T5.5: always cue the phone when a turn transition makes it my
-    // turn — haptic + sound + heads-up, whether the app is in front or
-    // Homed. The old backgrounded-only gate made the alert invisible
-    // during an on-table playtest.
-    if (_roomNotifier.consumeJustBecameMyTurnFlag()) {
+    // Your-turn cue: Homed / backgrounded phones ALWAYS shout (the
+    // Settings switch cannot mute that). The switch only mutes the
+    // on-screen buzz while you are looking at the game.
+    if (_roomNotifier.consumeJustBecameMyTurnFlag() &&
+        (_isBackgrounded || widget.repository.notificationsEnabled)) {
       final nickname = _roomNotifier.room.turn.nickname;
       unawaited(_notifications.announceYourTurn(nickname: nickname));
     }

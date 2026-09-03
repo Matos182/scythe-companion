@@ -27,10 +27,12 @@ class GameRepository {
     required SessionStore sessionStore,
     required SettingsRepository settingsRepository,
     String? initialServerUrl,
+    bool notificationsEnabled = true,
   })  : _socket = socketService,
         _sessions = sessionStore,
         _settings = settingsRepository,
-        _currentServerUrl = initialServerUrl {
+        _currentServerUrl = initialServerUrl,
+        _notificationsEnabled = notificationsEnabled {
     _joinedSub = _socket.roomJoined.listen(_onJoined);
     _stateSub = _socket.connectionStates.listen(_onConnectionState);
   }
@@ -46,6 +48,7 @@ class GameRepository {
   String? _roomCode;
   bool _everJoined = false;
   String? _currentServerUrl;
+  bool _notificationsEnabled;
 
   // ── Read surface for notifiers ────────────────────────────────────
 
@@ -64,6 +67,10 @@ class GameRepository {
   /// and updated by [setServerUrl]. The lobby encodes this into the
   /// QR payload so a scanned join lands on the right server (T3.2).
   String? get currentServerUrl => _currentServerUrl;
+
+  /// Whether the composition root should fire the your-turn cue.
+  /// Synced from prefs at boot and when Settings flips the switch.
+  bool get notificationsEnabled => _notificationsEnabled;
 
   /// Underlying [SessionStore] — used by the composition root to read
   /// the saved credentials for the boot-time "rejoined room XYZ"
@@ -102,7 +109,9 @@ class GameRepository {
       // the next launch restores it (main() reads settings at startup).
       serverUrl: normalizedUrl ?? _currentServerUrl,
       nickname: _normalizeNickname(settings.nickname),
+      notificationsEnabled: settings.notificationsEnabled,
     );
+    _notificationsEnabled = next.notificationsEnabled;
     await _settings.save(next);
     if (normalizedUrl != null && normalizedUrl != _currentServerUrl) {
       _applyServerUrl(normalizedUrl);
@@ -159,6 +168,16 @@ class GameRepository {
     if (raw == null) return null;
     final trimmed = raw.trim();
     return trimmed.isEmpty ? null : trimmed;
+  }
+
+  /// Persist the on-screen your-turn cue preference without touching URL
+  /// or nickname. Used by the Settings switch so a toggle does not depend
+  /// on tapping Save (same trap T5.1 closed for the server probe).
+  /// Backgrounded phones ignore this flag and always alert.
+  Future<void> setNotificationsEnabled(bool enabled) async {
+    _notificationsEnabled = enabled;
+    final current = await _settings.load();
+    await _settings.save(current.copyWith(notificationsEnabled: enabled));
   }
 
   /// Switch to a different socket.io server at runtime (T3.2: QR scan

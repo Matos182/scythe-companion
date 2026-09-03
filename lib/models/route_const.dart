@@ -14,4 +14,5 @@ class RouteNames {
   static const String simple = 'simple';
   static const String game = 'game';
   static const String settings = 'settings';
+  static const String about = 'about';
 }

@@ -42,7 +42,7 @@ class _HomePageState extends State<HomePage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
-            tooltip: 'Server & nickname',
+            tooltip: 'Settings',
             onPressed: () => context.goNamed(RouteNames.settings),
           ),
         ],
