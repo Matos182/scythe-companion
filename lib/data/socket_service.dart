@@ -251,6 +251,9 @@ class SocketService {
 
   void pause(String roomCode) => _adapter.emit('pause', {'roomId': roomCode});
 
+  /// T5.7: current-turn player starts a combat pause. Wire name `combat`.
+  void combat(String roomCode) => _adapter.emit('combat', {'roomId': roomCode});
+
   /// Wire name stays `toContinue` (protocol v1). The old client also sent
   /// `atualTurn` — dropped: the server is authoritative for turnIndex.
   void resume(String roomCode) =>

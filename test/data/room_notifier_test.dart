@@ -166,4 +166,46 @@ void main() {
       expect(notifier.consumeJustBecameMyTurnFlag(), isFalse);
     });
   });
+
+  group('justEnteredCombat (T5.7)', () {
+    final aliceBob = [
+      playerJson(id: 'uuid-alice', nickname: 'Alice', socketID: 'socket-1'),
+      playerJson(id: 'uuid-bob', nickname: 'Bob', socketID: 'socket-2'),
+    ];
+
+    test('fires once on the transition into a combat pause', () async {
+      await seatAlice();
+      fake.serverEmit(
+          'newTurn', roomJson(isJoin: false, turnIndex: 0, players: aliceBob));
+      await Future<void>.delayed(Duration.zero);
+      expect(notifier.consumeJustEnteredCombatFlag(), isFalse);
+
+      fake.serverEmit(
+        'updateRoom',
+        roomJson(
+          isJoin: false,
+          isPaused: true,
+          pauseReason: 'combat',
+          players: aliceBob,
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(notifier.consumeJustEnteredCombatFlag(), isTrue);
+      expect(notifier.consumeJustEnteredCombatFlag(), isFalse);
+    });
+
+    test('does not fire on a generic pause', () async {
+      await seatAlice();
+      fake.serverEmit(
+          'newTurn', roomJson(isJoin: false, turnIndex: 0, players: aliceBob));
+      await Future<void>.delayed(Duration.zero);
+
+      fake.serverEmit(
+        'updateRoom',
+        roomJson(isJoin: false, isPaused: true, players: aliceBob),
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(notifier.consumeJustEnteredCombatFlag(), isFalse);
+    });
+  });
 }

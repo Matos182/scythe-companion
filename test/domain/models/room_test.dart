@@ -133,6 +133,33 @@ void main() {
       expect(state.turnIndex, 0);
       expect(state.totalTurns, 1);
       expect(state.isPaused, false);
+      expect(state.pauseReason, isNull);
+      expect(state.isCombatPause, isFalse);
+    });
+
+    test('missing pauseReason is not combat', () {
+      final state = TurnState.fromJson({
+        'turnIndex': 0,
+        'totalTurns': 1,
+        'isPaused': true,
+      });
+      expect(state.isPaused, isTrue);
+      expect(state.pauseReason, isNull);
+      expect(state.isCombatPause, isFalse);
+    });
+
+    test('pauseReason combat is combat only while paused', () {
+      final combat = TurnState.fromJson({
+        'isPaused': true,
+        'pauseReason': 'combat',
+      });
+      expect(combat.isCombatPause, isTrue);
+
+      final live = TurnState.fromJson({
+        'isPaused': false,
+        'pauseReason': 'combat',
+      });
+      expect(live.isCombatPause, isFalse);
     });
 
     test('toJson round-trips', () {

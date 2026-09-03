@@ -108,3 +108,15 @@ class GameStrings {
   static const pausedLabel = 'GAME IS PAUSED!';
   static const offlineSuffix = '(offline)';
 }
+
+/// T5.7 combat pause — short English copy, no faction lore.
+class CombatStrings {
+  const CombatStrings._();
+
+  static const start = 'Combat';
+  static const startTooltip = 'Pause the clock — fight on the table';
+  static const overlayTitle = 'COMBAT';
+  static const overlayBody = 'Clocks stopped. Resolve the fight on the board.';
+  static const resolved = 'Resolved';
+  static const waiting = 'Fight in progress';
+}

@@ -37,6 +37,7 @@ class RoomNotifier extends ChangeNotifier {
   SocketError? _lastError;
   bool _justJoined = false;
   bool _justBecameMyTurn = false;
+  bool _justEnteredCombat = false;
 
   // ── Read surface for widgets ──────────────────────────────────────
 
@@ -57,6 +58,11 @@ class RoomNotifier extends ChangeNotifier {
   /// lobby→game start if I am first. The composition root consumes it
   /// via [consumeJustBecameMyTurnFlag] to cue the phone.
   bool get justBecameMyTurn => _justBecameMyTurn;
+
+  /// One-shot flag: set when the room transitions into a combat pause
+  /// (T5.7). The composition root consumes it via
+  /// [consumeJustEnteredCombatFlag] to fire the cue once — not in build().
+  bool get justEnteredCombat => _justEnteredCombat;
 
   /// Am I seated in this room? (identity via playerId, D4 — not socket
   /// id, which changes on every reconnect)
@@ -106,6 +112,7 @@ class RoomNotifier extends ChangeNotifier {
   void passTurn() => _repository.passTurn(_room.id);
   void pause() => _repository.pause(_room.id);
   void resume() => _repository.resume(_room.id);
+  void combat() => _repository.combat(_room.id);
 
   /// T5.4: creator removes a disconnected player, freeing their seat.
   void removePlayer(String playerId) =>
@@ -132,6 +139,13 @@ class RoomNotifier extends ChangeNotifier {
     return was;
   }
 
+  /// One-shot consumer for the "just entered combat" flag (T5.7).
+  bool consumeJustEnteredCombatFlag() {
+    final was = _justEnteredCombat;
+    _justEnteredCombat = false;
+    return was;
+  }
+
   void clearError() => _lastError = null;
 
   // ── Stream handlers ───────────────────────────────────────────────
@@ -146,6 +160,9 @@ class RoomNotifier extends ChangeNotifier {
     final nowInGame = !room.isJoin;
     if (nowInGame && isNowMyTurn && (!wasMyTurn || wasJoin)) {
       _justBecameMyTurn = true;
+    }
+    if (room.isCombatPause && !_room.isCombatPause) {
+      _justEnteredCombat = true;
     }
     _room = room;
     notifyListeners();
