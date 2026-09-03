@@ -5,10 +5,11 @@
 ///
 /// The old app spawned a background isolate with its own socket — a phantom
 /// connection that could never see UI-side room state. This service is much
-/// simpler: the foreground socket listener fires a local notification when
-/// `newTurn` makes it this device's turn AND the app is backgrounded. The
-/// foreground path is already covered by `WakelockPlus` + the in-page banner
-/// from T3.3.
+/// simpler: the composition root fires [announceYourTurn] when `newTurn`
+/// makes it this device's turn (T5.5: foreground AND background). The phone
+/// always buzzes + plays a sound; a heads-up tray item covers the case
+/// where the user is looking away. The in-page banner + wakelock from T3.3
+/// still run.
 ///
 /// Design rules:
 /// - Widgets never call this directly. The composition root in `main.dart`
@@ -18,11 +19,13 @@
 ///   sees it in context, not on a cold-boot splash.
 /// - The plugin is a no-op on non-Android platforms (D6); `initialize`
 ///   is guarded by `Platform.isAndroid` so the method channel is never
-///   touched in the Dart test VM.
+///   touched in the Dart test VM. Haptic/system-sound still run there.
 library;
 
 import 'dart:io';
+import 'dart:typed_data';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 /// Thin wrapper so callers don't depend on the plugin singleton directly.
@@ -34,7 +37,9 @@ class NotificationService {
 
   final FlutterLocalNotificationsPlugin _plugin;
 
-  static const _channelId = 'scythe_turn';
+  // T5.5: new channel id — Android ignores importance/sound/vibration
+  // edits to an already-created channel, so v2 is required for heads-up.
+  static const _channelId = 'scythe_turn_v2';
   static const _channelName = 'Turn Notifications';
   static const _channelDescription =
       'Notifies you when it is your turn in a Scythe multiplayer room.';
@@ -74,25 +79,48 @@ class NotificationService {
     return granted ?? false;
   }
 
-  /// Show a "Your turn!" notification. Called by the composition root when
-  /// `newTurn` makes it this device's turn and the app is backgrounded.
+  /// Phone-side "it's your turn" cue (T5.5). Always haptic + system
+  /// alert; also posts a heads-up notification on Android so a Homed
+  /// phone still shouts. Safe to call from the test VM — method-channel
+  /// misses are swallowed.
+  Future<void> announceYourTurn({String? nickname}) async {
+    await _pulseDevice();
+    await showYourTurn(nickname: nickname);
+  }
+
+  /// Show a "Your turn!" notification. Called by [announceYourTurn].
   Future<void> showYourTurn({String? nickname}) async {
     if (!_initialized) return;
 
-    const androidDetails = AndroidNotificationDetails(
+    final androidDetails = AndroidNotificationDetails(
       _channelId,
       _channelName,
       channelDescription: _channelDescription,
-      importance: Importance.high,
-      priority: Priority.high,
+      importance: Importance.max,
+      priority: Priority.max,
+      playSound: true,
+      enableVibration: true,
+      vibrationPattern: Int64List.fromList(const <int>[0, 180, 80, 180]),
+      category: AndroidNotificationCategory.reminder,
       autoCancel: true,
+      ticker: 'Your turn!',
+      timeoutAfter: const Duration(seconds: 10).inMilliseconds,
     );
-    const details = NotificationDetails(android: androidDetails);
+    final details = NotificationDetails(android: androidDetails);
 
     final title = nickname == null ? 'Your turn!' : 'Your turn, $nickname!';
     const body = 'Tap to return to the Scythe room.';
 
     await _plugin.show(_notificationId, title, body, details);
+  }
+
+  Future<void> _pulseDevice() async {
+    try {
+      await HapticFeedback.heavyImpact();
+      await SystemSound.play(SystemSoundType.alert);
+    } catch (_) {
+      // Test VM and headless isolates have no haptic/sound channel.
+    }
   }
 
   /// Cancel any active notification (e.g. when the user reopens the app

@@ -175,6 +175,9 @@ class _NoopNotificationService extends NotificationService {
   Future<bool> requestPermission() async => true;
 
   @override
+  Future<void> announceYourTurn({String? nickname}) async {}
+
+  @override
   Future<void> showYourTurn({String? nickname}) async {}
 
   @override
