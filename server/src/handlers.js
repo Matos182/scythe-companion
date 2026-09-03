@@ -30,6 +30,7 @@ import {
   RESUME,
   REJOIN_ROOM,
   REMOVE_PLAYER,
+  COMBAT,
   CREATE_ROOM_SUCCESS,
   JOIN_ROOM_SUCCESS,
   UPDATE_ROOM,
@@ -317,6 +318,53 @@ export function registerHandlers(io, store, options = {}) {
       io.to(roomId).emit(UPDATE_ROOM, RoomStore.serialize(updated));
     });
 
+    // ── combat (T5.7) ────────────────────────────────────────────
+    //
+    // Table fight: current-turn player pauses the clock with a distinct
+    // reason so every client can show the combat overlay. Resume uses
+    // the existing toContinue path and clears pauseReason. Additive —
+    // protocolVersion stays 1.
+    socket.on(COMBAT, (payload) => {
+      const validation = validateRoomAction(payload);
+      if (!validation.ok) {
+        socket.emit(ERROR_OCCURRED, errorEnvelope(validation.code, validation.message));
+        return;
+      }
+      const { roomId } = validation.data;
+
+      if (!requireRoomMembership(socket, roomId)) return;
+
+      const room = store.get(roomId);
+      if (!room) {
+        socket.emit(ERROR_OCCURRED, errorEnvelope(
+          ERROR_CODES.STATE_ROOM_NOT_FOUND,
+          'Room not found.',
+        ));
+        return;
+      }
+
+      if (room.isJoin) {
+        socket.emit(ERROR_OCCURRED, errorEnvelope(
+          ERROR_CODES.VAL_BAD_PAYLOAD,
+          'The game has not started.',
+        ));
+        return;
+      }
+
+      if (!store.isCurrentTurnPlayer(roomId, socket.data.playerId)) {
+        socket.emit(ERROR_OCCURRED, errorEnvelope(
+          ERROR_CODES.STATE_NOT_YOUR_TURN,
+          "It's not your turn.",
+        ));
+        return;
+      }
+
+      timerEngine.pause(store, roomId);
+      store.setPauseReason(roomId, 'combat');
+      const updated = store.get(roomId);
+      io.to(roomId).emit(UPDATE_ROOM, RoomStore.serialize(updated));
+    });
+
     // ── toContinue (resume) ──────────────────────────────────────
     socket.on(RESUME, (payload) => {
       const validation = validateRoomAction(payload);
@@ -373,8 +421,14 @@ export function registerHandlers(io, store, options = {}) {
 
       // If the timer was auto-paused because this player disconnected
       // during their turn, resume it before broadcasting so the state
-      // reflects the resumed timer in a single update.
-      if (room.isPaused && store.isCurrentTurnPlayer(roomCode, playerId)) {
+      // reflects the resumed timer in a single update. Combat pauses
+      // must NOT auto-resume — a fighter who backgrounds the app
+      // should not silently unpause the fight (T5.7).
+      if (
+        room.isPaused
+        && store.isCurrentTurnPlayer(roomCode, playerId)
+        && room.pauseReason !== 'combat'
+      ) {
         timerEngine.resume(io, store, roomCode);
       }
 
