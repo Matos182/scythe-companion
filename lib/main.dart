@@ -72,11 +72,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   late final RoomNotifier _roomNotifier;
   late final NotificationService _notifications;
 
-  /// T3.4: true when the app is not in the foreground (inactive or
-  /// hidden). The foreground listener skips the notification when the
-  /// user is already looking at the in-page banner + wakelock path.
-  bool _appIsBackgrounded = false;
-
   /// One-shot context for the boot-time `rejoinSavedSession` (T3.3
   /// hand-off debt 5b). The repository silently attempts to resume a
   /// stored session; if it succeeds, we show "Rejoined room XYZ" instead
@@ -105,13 +100,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // T3.4: track whether the app is backgrounded. We treat both
-    // `inactive` (e.g. phone ringing, split-screen) and `hidden` as
-    // "backgrounded" — the notification is useful whenever the user
-    // isn't actively looking at the game screen. `paused` and `detached`
-    // are also backgrounded but the socket may not receive events in
-    // those states on all platforms. `resumed` clears the flag.
-    _appIsBackgrounded = state != AppLifecycleState.resumed;
+    // T5.5: coming back to the game screen, the in-page banner is
+    // enough — clear the tray item so it doesn't linger at the table.
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_notifications.cancel());
+    }
   }
 
   Future<void> _attemptBootRejoin() async {
@@ -150,12 +143,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       }
     }
 
-    // T3.4: fire a local notification when a newTurn transition makes
-    // it my turn while the app is backgrounded. The foreground path is
-    // already covered by the in-page banner + wakelock (T3.3).
-    if (_roomNotifier.consumeJustBecameMyTurnFlag() && _appIsBackgrounded) {
+    // T5.5: always cue the phone when a turn transition makes it my
+    // turn — haptic + sound + heads-up, whether the app is in front or
+    // Homed. The old backgrounded-only gate made the alert invisible
+    // during an on-table playtest.
+    if (_roomNotifier.consumeJustBecameMyTurnFlag()) {
       final nickname = _roomNotifier.room.turn.nickname;
-      unawaited(_notifications.showYourTurn(nickname: nickname));
+      unawaited(_notifications.announceYourTurn(nickname: nickname));
     }
 
     final error = _roomNotifier.lastError;

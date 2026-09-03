@@ -52,10 +52,10 @@ class RoomNotifier extends ChangeNotifier {
   /// consumes it via [consumeJoinedFlag].
   bool get justJoined => _justJoined;
 
-  /// One-shot flag: set when a room update transitions to my turn and
-  /// it wasn't my turn before (T3.4). The composition root's listener
-  /// consumes it via [consumeJustBecameMyTurnFlag] to fire a local
-  /// notification when the app is backgrounded.
+  /// One-shot flag: set when a room update makes it my turn during an
+  /// in-progress game (T3.4 / T5.5). Covers both a pass-to-me and the
+  /// lobby→game start if I am first. The composition root consumes it
+  /// via [consumeJustBecameMyTurnFlag] to cue the phone.
   bool get justBecameMyTurn => _justBecameMyTurn;
 
   /// Am I seated in this room? (identity via playerId, D4 — not socket
@@ -137,14 +137,14 @@ class RoomNotifier extends ChangeNotifier {
   // ── Stream handlers ───────────────────────────────────────────────
 
   void _onRoom(Room room) {
-    // T3.4: detect the transition to my turn so the composition root
-    // can fire a local notification when the app is backgrounded.
-    // We compare against the previous room state — only a genuine
-    // transition (wasn't my turn → is my turn) sets the flag, not a
-    // refresh that keeps the same active player.
+    // T5.5: cue only for an in-progress game. Lobby create sets
+    // `turn` to the creator, which is not "your turn" at the table.
+    // Lobby→game with me as first player still counts (wasJoin).
+    final wasJoin = _room.isJoin;
     final wasMyTurn = _isMyTurnForRoom(_room);
     final isNowMyTurn = _isMyTurnForRoom(room);
-    if (!wasMyTurn && isNowMyTurn) {
+    final nowInGame = !room.isJoin;
+    if (nowInGame && isNowMyTurn && (!wasMyTurn || wasJoin)) {
       _justBecameMyTurn = true;
     }
     _room = room;
