@@ -20,10 +20,11 @@ import { registerHandlers, shutdownTimers } from '../src/handlers.js';
  * Covered here:
  *  1. non-member startGame → AUTH_NOT_IN_ROOM, room untouched
  *  2. seated member acting on a DIFFERENT room → AUTH_NOT_IN_ROOM
- *  3. member, wrong-turn TURN → STATE_NOT_YOUR_TURN
- *  4. correct-turn TURN passes (happy path intact)
- *  5. non-member pause → AUTH_NOT_IN_ROOM, room not paused
- *  6. non-member resume → AUTH_NOT_IN_ROOM, room stays paused
+ *  3. seated non-creator startGame → AUTH_NOT_CREATOR, room untouched
+ *  4. member, wrong-turn TURN → STATE_NOT_YOUR_TURN
+ *  5. correct-turn TURN passes (happy path intact)
+ *  6. non-member pause → AUTH_NOT_IN_ROOM, room not paused
+ *  7. non-member resume → AUTH_NOT_IN_ROOM, room stays paused
  */
 
 const testPort = 3995;
@@ -145,6 +146,17 @@ describe('room-action authorization (T4.7c)', () => {
     const err = await emitExpectingError(alice, 'startGame', { roomId: roomB._id });
     expect(err.code).toBe('AUTH_NOT_IN_ROOM');
     expect(store.get(roomB._id).isJoin).toBe(true);
+  });
+
+  it('rejects startGame from a seated player who is not the creator', async () => {
+    const alice = await connect();
+    const bob = await connect();
+    const room = await createRoom(alice);
+    await joinRoom(bob, room._id);
+
+    const err = await emitExpectingError(bob, 'startGame', { roomId: room._id });
+    expect(err.code).toBe('AUTH_NOT_CREATOR');
+    expect(store.get(room._id).isJoin).toBe(true);
   });
 
   it('rejects TURN from a member when it is not their turn', async () => {

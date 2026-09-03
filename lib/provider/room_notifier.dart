@@ -107,6 +107,10 @@ class RoomNotifier extends ChangeNotifier {
   void pause() => _repository.pause(_room.id);
   void resume() => _repository.resume(_room.id);
 
+  /// T5.4: creator removes a disconnected player, freeing their seat.
+  void removePlayer(String playerId) =>
+      _repository.removePlayer(_room.id, playerId);
+
   Future<void> leaveSession() async {
     await _repository.leaveSession();
     _room = const Room();

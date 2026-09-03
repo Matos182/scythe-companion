@@ -247,6 +247,10 @@ class GameRepository {
   void pause(String roomCode) => _socket.pause(roomCode);
   void resume(String roomCode) => _socket.resume(roomCode);
 
+  /// T5.4: creator removes a disconnected player, freeing their seat.
+  void removePlayer(String roomCode, String playerId) =>
+      _socket.removePlayer(roomCode: roomCode, playerId: playerId);
+
   /// Leave the multiplayer flow: forget the session so the next launch
   /// doesn't try to resurrect a dead room.
   Future<void> leaveSession() async {
