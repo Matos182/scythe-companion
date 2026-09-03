@@ -59,6 +59,8 @@ const Map<String, String> _messages = {
   // ── Authorization (AUTH_*) — server says you're not allowed (T4.7c) ──
   'AUTH_NOT_IN_ROOM':
       "You can only act on a game you're playing in. If you were disconnected, reopen the room to rejoin.",
+  'AUTH_NOT_CREATOR':
+      "Only the room creator can start the game or remove a player.",
 
   // ── State (STATE_*) — the game is in the wrong shape ─────────────
   'STATE_ROOM_NOT_FOUND':
@@ -72,6 +74,8 @@ const Map<String, String> _messages = {
   'STATE_NOT_YOUR_TURN':
       "It's not your turn yet — only the current player can pass.",
   'STATE_PASS_FAILED': "The turn couldn't be passed. Please try again.",
+  'STATE_PLAYER_CONNECTED':
+      "That player is still connected — you can only remove players who've left.",
 
   // ── Rejoin (REJOIN_*) — the stored session is dead ───────────────
   'REJOIN_NOT_FOUND':

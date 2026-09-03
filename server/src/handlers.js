@@ -13,9 +13,10 @@
  * limiting is enforced at connection time, and structured logging
  * replaces console.log.
  *
- * T4.7c authorization: startGame/turn/pause/resume require the sender
+ * T4.7c authorization: start/turn/pause/resume require the sender
  * to be seated in the room they target (socket.data.roomCode), and
  * `turn` additionally requires turn ownership (STATE_NOT_YOUR_TURN).
+ * startGame and removePlayer are also creator-only (AUTH_NOT_CREATOR).
  */
 
 import { RoomStore } from './roomStore.js';
@@ -28,6 +29,7 @@ import {
   PAUSE,
   RESUME,
   REJOIN_ROOM,
+  REMOVE_PLAYER,
   CREATE_ROOM_SUCCESS,
   JOIN_ROOM_SUCCESS,
   UPDATE_ROOM,
@@ -68,6 +70,29 @@ function requireRoomMembership(socket, roomId) {
   socket.emit(ERROR_OCCURRED, errorEnvelope(
     ERROR_CODES.AUTH_NOT_IN_ROOM,
     'You are not a player in that room.',
+  ));
+  return false;
+}
+
+/**
+ * Creator-only actions (startGame, removePlayer). Trusts
+ * socket.data.playerId stamped at create/join/rejoin, not a client claim.
+ *
+ * @param {import('socket.io').Socket} socket
+ * @param {{ _id: string, creator: { _id: string } }} room
+ * @param {string} message — human-readable AUTH_NOT_CREATOR text
+ * @returns {boolean} true when the socket is the room creator
+ */
+function requireCreator(socket, room, message) {
+  if (room.creator._id === socket.data.playerId) return true;
+  logger.warn({
+    socketId: socket.id,
+    roomId: room._id,
+    playerId: socket.data.playerId,
+  }, 'action rejected: sender is not the room creator');
+  socket.emit(ERROR_OCCURRED, errorEnvelope(
+    ERROR_CODES.AUTH_NOT_CREATOR,
+    message,
   ));
   return false;
 }
@@ -199,6 +224,10 @@ export function registerHandlers(io, store, options = {}) {
           ERROR_CODES.STATE_ROOM_NOT_FOUND,
           'Room not found.',
         ));
+        return;
+      }
+
+      if (!requireCreator(socket, room, 'Only the room creator can start the game.')) {
         return;
       }
 
@@ -354,6 +383,82 @@ export function registerHandlers(io, store, options = {}) {
       io.to(roomCode).emit(UPDATE_ROOM, wire);
 
       logger.info({ roomCode, playerId }, 'player rejoined');
+    });
+
+    // ── removePlayer (T5.4 creator seat management) ─────────────
+    //
+    // A disconnected player strands their faction/mat seat: nobody can
+    // pick it and the absent player may never return.  The creator may
+    // remove a DISCONNECTED player, freeing the seat for a fresh join.
+    // Removing a connected player is rejected — a bad network for a few
+    // seconds must not eject someone mid-game.
+    socket.on(REMOVE_PLAYER, (payload) => {
+      const validation = validateRoomAction(payload);
+      if (!validation.ok) {
+        socket.emit(ERROR_OCCURRED, errorEnvelope(validation.code, validation.message));
+        return;
+      }
+      const { roomId } = validation.data;
+      const targetPlayerId = typeof payload?.playerId === 'string'
+        ? payload.playerId.trim()
+        : '';
+
+      if (!requireRoomMembership(socket, roomId)) return;
+
+      const room = store.get(roomId);
+      if (!room) {
+        socket.emit(ERROR_OCCURRED, errorEnvelope(
+          ERROR_CODES.STATE_ROOM_NOT_FOUND,
+          'Room not found.',
+        ));
+        return;
+      }
+
+      if (!requireCreator(socket, room, 'Only the room creator can remove players.')) {
+        return;
+      }
+
+      if (!targetPlayerId) {
+        socket.emit(ERROR_OCCURRED, errorEnvelope(
+          ERROR_CODES.VAL_MISSING_FIELDS,
+          'Player to remove is required.',
+        ));
+        return;
+      }
+
+      const target = room.players.find((p) => p._id === targetPlayerId);
+      if (!target) {
+        socket.emit(ERROR_OCCURRED, errorEnvelope(
+          ERROR_CODES.STATE_ROOM_NOT_FOUND,
+          'That player is not in the room.',
+        ));
+        return;
+      }
+
+      if (target.connected) {
+        socket.emit(ERROR_OCCURRED, errorEnvelope(
+          ERROR_CODES.STATE_PLAYER_CONNECTED,
+          "That player is still connected — you can only remove players who've left.",
+        ));
+        return;
+      }
+
+      const wasTurnPlayer = room.turn && room.turn._id === targetPlayerId;
+      const updated = store.removePlayer(roomId, targetPlayerId);
+      if (!updated) {
+        // Room emptied out and was dropped; nothing to broadcast.
+        logger.info({ roomCode: roomId, removedPlayerId: targetPlayerId }, 'player removed; room empty');
+        return;
+      }
+
+      const wire = RoomStore.serialize(updated);
+      io.to(roomId).emit(UPDATE_ROOM, wire);
+      if (wasTurnPlayer) {
+        io.to(roomId).emit(NEW_TURN, wire);
+        // Restart the clock for the new turn player.
+        timerEngine.start(io, store, roomId);
+      }
+      logger.info({ roomCode: roomId, removedPlayerId: targetPlayerId }, 'player removed');
     });
 
     // ── disconnect ──────────────────────────────────────────────

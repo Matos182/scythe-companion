@@ -27,6 +27,8 @@ export const ERROR_CODES = Object.freeze({
 
   // Authorization (T4.7c)
   AUTH_NOT_IN_ROOM: 'AUTH_NOT_IN_ROOM',
+  // Authorization (startGame + T5.4 removePlayer)
+  AUTH_NOT_CREATOR: 'AUTH_NOT_CREATOR',
 
   // State
   STATE_ROOM_NOT_FOUND: 'STATE_ROOM_NOT_FOUND',
@@ -35,6 +37,8 @@ export const ERROR_CODES = Object.freeze({
   STATE_SINGLE_PLAYER: 'STATE_SINGLE_PLAYER',
   STATE_NOT_YOUR_TURN: 'STATE_NOT_YOUR_TURN',
   STATE_PASS_FAILED: 'STATE_PASS_FAILED',
+  // State (T5.4 creator seat management)
+  STATE_PLAYER_CONNECTED: 'STATE_PLAYER_CONNECTED',
 
   // Rejoin
   REJOIN_NOT_FOUND: 'REJOIN_NOT_FOUND',

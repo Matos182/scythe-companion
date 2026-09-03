@@ -262,6 +262,13 @@ class SocketService {
         'playerId': playerId,
       });
 
+  /// T5.4: creator removes a disconnected player, freeing their seat.
+  void removePlayer({required String roomCode, required String playerId}) =>
+      _adapter.emit('removePlayer', {
+        'roomId': roomCode,
+        'playerId': playerId,
+      });
+
   // ── Internals ─────────────────────────────────────────────────────
 
   /// The ONLY place socket handlers are registered (A10 fix).

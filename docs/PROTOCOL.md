@@ -2,7 +2,7 @@
 
 **Protocol version:** 1  
 **Transport:** socket.io (client 3.x ↔ server 4.x)  
-**Last updated:** 2026-08-31 (T4.7c — room-action authorization)
+**Last updated:** 2026-09-02 (startGame creator-only)
 
 > A `protocolVersion` field is included in the `/healthz` HTTP response.
 > The client probes `/healthz` before opening the socket; if its expected
@@ -121,7 +121,7 @@ Closes the room, runs the faction wheel, sets first player.
 
 **Server response:** `updateRoom` (to the room) with reordered players + first turn.
 
-**Errors:** `errorOccurred` — "Room not found.", "You aren't playing with Automa!!" (single-player room), "You are not a player in that room." (`AUTH_NOT_IN_ROOM`, T4.7c — sender not seated in `roomId`)
+**Errors:** `errorOccurred` — "Room not found.", "You aren't playing with Automa!!" (single-player room), "You are not a player in that room." (`AUTH_NOT_IN_ROOM`, T4.7c — sender not seated in `roomId`), "Only the room creator can start the game." (`AUTH_NOT_CREATOR` — seated non-creator)
 
 ---
 
@@ -206,6 +206,32 @@ un-paused state.
 
 ---
 
+#### `removePlayer` (T5.4 — creator seat management)
+
+Removes a DISCONNECTED player from the room, freeing their faction/mat
+seat so a fresh `joinRoom` can take it. Covers the unrecoverable cases:
+lost saved session, app reinstall, different device. Creator-only.
+
+```json
+{
+  "roomId": "AB3KMN",
+  "playerId": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+**Server response:**
+- `updateRoom` (to the room) with the player removed.
+- If the removed player was the current turn player: also `newTurn` with
+  the turn moved to the next remaining player, and the timer restarted.
+
+**Errors:** `errorOccurred` — "You are not a player in that room."
+(`AUTH_NOT_IN_ROOM`), "Only the room creator can remove players."
+(`AUTH_NOT_CREATOR`), "That player is still connected — you can only
+remove players who've left." (`STATE_PLAYER_CONNECTED`), "That player is
+not in the room." (`STATE_ROOM_NOT_FOUND`).
+
+---
+
 ### Server → Client
 
 | Event | Trigger | Payload |
@@ -265,6 +291,7 @@ All `errorOccurred` events carry a structured envelope instead of a bare string:
 | `VAL_INVALID_MAT` | Validation | Player mat not in the valid set |
 | `VAL_BAD_PAYLOAD` | Validation | Payload is not a non-null object |
 | `AUTH_NOT_IN_ROOM` | Auth | Sender not seated in the room they target (T4.7c) |
+| `AUTH_NOT_CREATOR` | Auth | Sender is not the room creator (startGame, T5.4 removePlayer) |
 | `STATE_ROOM_NOT_FOUND` | State | Room does not exist |
 | `STATE_GAME_IN_PROGRESS` | State | Room closed (game started) |
 | `STATE_FACTION_OR_MAT_TAKEN` | State | Faction/mat already chosen |

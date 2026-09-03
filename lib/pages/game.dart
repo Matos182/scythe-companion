@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import '../data/socket_service.dart';
+import '../domain/models/player.dart';
 import '../models/route_const.dart';
 import '../provider/room_notifier.dart';
 import '../ui/theme.dart';
@@ -405,7 +406,11 @@ class _PlayersTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final players = context.watch<RoomNotifier>().room.players;
+    final notifier = context.watch<RoomNotifier>();
+    final room = notifier.room;
+    final isCreator = notifier.isCreator;
+    final players = room.players;
+    final turnId = room.turn.id;
     return DataTable(
       dataRowMaxHeight: 25,
       dataRowMinHeight: 20,
@@ -413,24 +418,119 @@ class _PlayersTable extends StatelessWidget {
       columns: const [
         DataColumn(label: Center(widthFactor: 0.65, child: Text('Name'))),
         DataColumn(label: Center(widthFactor: 0.8, child: Text('Timer'))),
+        // T5.4: remove affordance column — empty header, only creators
+        // get cells in it.
+        DataColumn(label: Text('')),
       ],
       rows: players.map<DataRow>((player) {
+        final isTurn = player.id == turnId && !room.isJoin;
         final displayName = player.connected
             ? player.nickname
             : '${player.nickname} ${GameStrings.offlineSuffix}';
         return DataRow(
+          // T5.4: highlight whose turn it is — glanceable from across a
+          // table without reading the banner.
+          color: isTurn
+              ? WidgetStateProperty.all(
+                  ScytheColors.brass.withValues(alpha: 0.18),
+                )
+              : null,
           cells: [
-            DataCell(Text(displayName, textAlign: TextAlign.center)),
+            DataCell(
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (isTurn) ...[
+                    const Icon(
+                      Icons.hourglass_bottom,
+                      size: 13,
+                      color: ScytheColors.brass,
+                    ),
+                    const SizedBox(width: 4),
+                  ],
+                  Flexible(
+                    child: Text(
+                      displayName,
+                      textAlign: TextAlign.center,
+                      style: isTurn
+                          ? const TextStyle(
+                              color: ScytheColors.brass,
+                              fontWeight: FontWeight.bold,
+                            )
+                          : null,
+                    ),
+                  ),
+                ],
+              ),
+            ),
             DataCell(
               Text(
                 formatTime(player.remainingSec),
                 textAlign: TextAlign.center,
+                style: isTurn
+                    ? const TextStyle(
+                        color: ScytheColors.brass,
+                        fontWeight: FontWeight.bold,
+                      )
+                    : null,
               ),
             ),
+            if (isCreator)
+              DataCell(
+                // Only ever offered for disconnected players — the
+                // server enforces the same rule (STATE_PLAYER_CONNECTED).
+                player.connected
+                    ? const SizedBox.shrink()
+                    : IconButton(
+                        key: ValueKey('remove-player-${player.id}'),
+                        visualDensity: VisualDensity.compact,
+                        iconSize: 18,
+                        padding: EdgeInsets.zero,
+                        tooltip: 'Remove player',
+                        icon: const Icon(
+                          Icons.person_remove,
+                          color: ScytheColors.danger,
+                        ),
+                        onPressed: () =>
+                            _confirmRemove(context, notifier, player),
+                      ),
+              )
+            else
+              const DataCell(SizedBox.shrink()),
           ],
         );
       }).toList(),
     );
+  }
+
+  Future<void> _confirmRemove(
+    BuildContext context,
+    RoomNotifier notifier,
+    Player player,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Remove player'),
+        content: Text(
+          'Remove ${player.nickname} and free their faction/mat for '
+          'someone else?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      notifier.removePlayer(player.id);
+    }
   }
 }
 

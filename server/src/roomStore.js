@@ -329,6 +329,63 @@ export class RoomStore {
   }
 
   /**
+   * Remove a player from a room (T5.4 creator seat management).
+   *
+   * Frees the removed player's faction/mat seat so a fresh join can take
+   * it. Only the handler decides WHO may remove; this method only
+   * validates that the target exists.
+   *
+   * When the removed player was the current turn player, the turn
+   * advances to the next player (wrapping, same rule as passTurn) and
+   * their allowance is topped up to minTurnSec. The caller restarts the
+   * timer engine either way.
+   *
+   * When the removed player sat *before* the current turn, turnIndex
+   * is decremented so it still names the same player after the splice.
+   * passTurn() reads turnIndex, not turn._id — leaving it stale skips
+   * a player.
+   *
+   * @param {string} roomCode
+   * @param {string} playerId — player to remove
+   * @returns {Room | null} updated room, or null when room/player missing
+   */
+  removePlayer(roomCode, playerId) {
+    const room = this.rooms.get(roomCode);
+    if (!room) return null;
+    const index = room.players.findIndex((p) => p._id === playerId);
+    if (index === -1) return null;
+
+    const removedHadTurn = room.turn && room.turn._id === playerId;
+    room.players.splice(index, 1);
+
+    if (room.players.length === 0) {
+      // Nobody left — drop the room entirely.
+      this.rooms.delete(roomCode);
+      return null;
+    }
+
+    if (removedHadTurn) {
+      // Removed player had the turn: move it to the next remaining
+      // player (same position wraps to 0). passTurn() would walk from
+      // the OLD index, so set the turn explicitly here.
+      if (room.turnIndex >= room.players.length) {
+        room.turnIndex = 0;
+        room.totalTurns++;
+      }
+      room.turn = room.players[room.turnIndex];
+      if (room.turn.remainingSec < minTurnSec) {
+        room.turn.remainingSec = minTurnSec;
+      }
+    } else if (index < room.turnIndex) {
+      room.turnIndex -= 1;
+      room.turn = room.players[room.turnIndex];
+    }
+
+    room.lastActivity = Date.now();
+    return room;
+  }
+
+  /**
    * Is the given player the current turn player?
    * @param {string} roomCode
    * @param {string} playerId
