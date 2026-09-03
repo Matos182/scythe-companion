@@ -12,6 +12,7 @@ import '../models/route_const.dart';
 import '../provider/room_notifier.dart';
 import '../ui/theme.dart';
 import '../utils/strings.dart';
+import '../widgets/combat_overlay.dart';
 import '../widgets/confirm_dialog.dart';
 import '../widgets/scrollable_center_column.dart';
 import '../widgets/turn.dart';
@@ -280,61 +281,66 @@ class _ActiveGameView extends StatelessWidget {
     final notifier = context.watch<RoomNotifier>();
     final room = notifier.room;
     final turnKey = '${room.turn.id}-${room.totalTurns}';
+    final showCombatControl = notifier.isMyTurn && !room.isCombatPause;
 
-    return ScrollableCenterColumn(
+    return Stack(
+      fit: StackFit.expand,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 50),
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 280),
-            switchInCurve: Curves.easeOutCubic,
-            switchOutCurve: Curves.easeOutCubic,
-            child: FittedBox(
-              key: ValueKey(turnKey),
-              child: Text(
-                "${room.turn.nickname}'s Turn  -  Round: ${room.totalTurns}",
-                style: const TextStyle(
-                  fontSize: 30,
-                  fontWeight: FontWeight.bold,
-                  color: ScytheColors.parchment,
+        ScrollableCenterColumn(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 50),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 280),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeOutCubic,
+                child: FittedBox(
+                  key: ValueKey(turnKey),
+                  child: Text(
+                    "${room.turn.nickname}'s Turn  -  Round: ${room.totalTurns}",
+                    style: const TextStyle(
+                      fontSize: 30,
+                      fontWeight: FontWeight.bold,
+                      color: ScytheColors.parchment,
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
-        ),
-        const Padding(
-          padding: EdgeInsets.fromLTRB(20, 20, 20, 5),
-          child: Text(
-            'Turn Time Remaining:',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: ScytheColors.brass,
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 20, 20, 5),
+              child: Text(
+                'Turn Time Remaining:',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: ScytheColors.brass,
+                ),
+              ),
             ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 5, 20, 10),
-          child: Selector<RoomNotifier, int>(
-            selector: (_, n) {
-              final currentRoom = n.room;
-              if (currentRoom.players.isEmpty ||
-                  currentRoom.turnIndex < 0 ||
-                  currentRoom.turnIndex >= currentRoom.players.length) {
-                return 0;
-              }
-              return currentRoom.players[currentRoom.turnIndex].remainingSec;
-            },
-            builder: (_, remaining, __) => _CountdownDisplay(
-              remaining: remaining,
-              formatted: formatTime(remaining),
-              pulseAnimation: pulseAnimation,
-              shouldPulse: shouldPulse,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 5, 20, 10),
+              child: Selector<RoomNotifier, int>(
+                selector: (_, n) {
+                  final currentRoom = n.room;
+                  if (currentRoom.players.isEmpty ||
+                      currentRoom.turnIndex < 0 ||
+                      currentRoom.turnIndex >= currentRoom.players.length) {
+                    return 0;
+                  }
+                  return currentRoom
+                      .players[currentRoom.turnIndex].remainingSec;
+                },
+                builder: (_, remaining, __) => _CountdownDisplay(
+                  remaining: remaining,
+                  formatted: formatTime(remaining),
+                  pulseAnimation: pulseAnimation,
+                  shouldPulse: shouldPulse,
+                ),
+              ),
             ),
-          ),
-        ),
-        room.isPaused
-            ? Container(
+            if (room.isPaused && !room.isCombatPause)
+              Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                 decoration: BoxDecoration(
@@ -342,7 +348,7 @@ class _ActiveGameView extends StatelessWidget {
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: const Text(
-                  'GAME IS PAUSED!',
+                  GameStrings.pausedLabel,
                   style: TextStyle(
                     color: ScytheColors.warning,
                     fontSize: 18,
@@ -350,11 +356,49 @@ class _ActiveGameView extends StatelessWidget {
                   ),
                 ),
               )
-            : const TurnPage(),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(5, 50, 10, 10),
-          child: _PlayersTable(formatTime: formatTime),
+            else if (!room.isPaused)
+              const TurnPage(),
+            if (showCombatControl)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                child: Tooltip(
+                  message: CombatStrings.startTooltip,
+                  child: OutlinedButton(
+                    key: const ValueKey('combat-action'),
+                    onPressed: notifier.combat,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: ScytheColors.danger,
+                      side: const BorderSide(color: ScytheColors.rustDeep),
+                      minimumSize: const Size(170, 48),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CustomPaint(
+                            painter: CrossedBladesPainter(
+                              fill: ScytheColors.brass,
+                              edge: ScytheColors.rustDeep,
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 10),
+                        Text(CombatStrings.start),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(5, 50, 10, 10),
+              child: _PlayersTable(formatTime: formatTime),
+            ),
+          ],
         ),
+        if (room.isCombatPause)
+          const CombatOverlay(key: ValueKey('combat-overlay')),
       ],
     );
   }

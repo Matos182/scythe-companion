@@ -72,7 +72,7 @@ const Map<String, String> _messages = {
   'STATE_SINGLE_PLAYER':
       "You need at least two players before the game can start.",
   'STATE_NOT_YOUR_TURN':
-      "It's not your turn yet — only the current player can pass.",
+      "It's not your turn yet — only the current player can do that.",
   'STATE_PASS_FAILED': "The turn couldn't be passed. Please try again.",
   'STATE_PLAYER_CONNECTED':
       "That player is still connected — you can only remove players who've left.",
