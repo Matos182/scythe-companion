@@ -86,7 +86,7 @@ void main() {
 
     expect(find.text('Settings'), findsOneWidget);
     expect(find.text('Server URL'), findsOneWidget);
-    expect(find.text('Your-turn alerts'), findsOneWidget);
+    expect(find.text('On-screen turn alerts'), findsOneWidget);
   });
 
   testWidgets('Settings About opens the about page', (tester) async {

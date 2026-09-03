@@ -42,7 +42,7 @@ void main() {
     // Default placeholder is visible when there's no saved value.
     expect(find.text('Server URL'), findsOneWidget);
     expect(find.text('Default nickname'), findsOneWidget);
-    expect(find.text('Your-turn alerts'), findsOneWidget);
+    expect(find.text('On-screen turn alerts'), findsOneWidget);
     expect(find.text('About'), findsOneWidget);
     expect(find.text('Save'), findsOneWidget);
 

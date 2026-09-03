@@ -170,9 +170,10 @@ class GameRepository {
     return trimmed.isEmpty ? null : trimmed;
   }
 
-  /// Persist the your-turn alert preference without touching URL or
-  /// nickname. Used by the Settings switch so a toggle does not depend
+  /// Persist the on-screen your-turn cue preference without touching URL
+  /// or nickname. Used by the Settings switch so a toggle does not depend
   /// on tapping Save (same trap T5.1 closed for the server probe).
+  /// Backgrounded phones ignore this flag and always alert.
   Future<void> setNotificationsEnabled(bool enabled) async {
     _notificationsEnabled = enabled;
     final current = await _settings.load();
