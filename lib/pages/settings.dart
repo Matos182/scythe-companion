@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: MIT
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../data/game_repository.dart';
 import '../data/server_config.dart';
 import '../data/settings_repository.dart';
 import '../data/socket_service.dart';
+import '../models/route_const.dart';
 import '../ui/backdrop.dart';
 import '../ui/panel_card.dart';
 import '../ui/theme.dart';
@@ -30,6 +34,7 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _loaded = false;
   bool _saving = false;
   bool _testingConnection = false;
+  bool _notificationsEnabled = true;
   String? _errorText;
   String? _infoText;
 
@@ -47,6 +52,7 @@ class _SettingsPageState extends State<SettingsPage> {
     if (!_loaded && mounted) {
       _serverUrlController.text = initial;
       _nicknameController.text = saved.nickname ?? '';
+      _notificationsEnabled = saved.notificationsEnabled;
       setState(() => _loaded = true);
     }
   }
@@ -119,6 +125,7 @@ class _SettingsPageState extends State<SettingsPage> {
         AppSettings(
           serverUrl: url.isEmpty ? null : url,
           nickname: nickname.isEmpty ? null : nickname,
+          notificationsEnabled: _notificationsEnabled,
         ),
       );
       if (!mounted) return;
@@ -128,6 +135,23 @@ class _SettingsPageState extends State<SettingsPage> {
       setState(() => _errorText = 'Could not save: $error');
     } finally {
       if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  void _onNotificationsChanged(bool value) {
+    setState(() => _notificationsEnabled = value);
+    unawaited(_persistNotifications(value));
+  }
+
+  Future<void> _persistNotifications(bool value) async {
+    try {
+      await context.read<GameRepository>().setNotificationsEnabled(value);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _notificationsEnabled = !value;
+        _errorText = 'Could not save: $error';
+      });
     }
   }
 
@@ -196,6 +220,36 @@ class _SettingsPageState extends State<SettingsPage> {
                     textCapitalization: TextCapitalization.words,
                   ),
                   const SizedBox(height: 24),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              SettingsStrings.notificationsTitle,
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            SizedBox(height: 6),
+                            Text(
+                              SettingsStrings.notificationsSubtitle,
+                              style: TextStyle(
+                                color: ScytheColors.parchmentDim,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Switch(
+                        key: const Key('settings-turn-alerts'),
+                        value: _notificationsEnabled,
+                        onChanged: _onNotificationsChanged,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
                   if (_errorText != null)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
@@ -215,6 +269,12 @@ class _SettingsPageState extends State<SettingsPage> {
                   ElevatedButton(
                     onPressed: _saving ? null : _save,
                     child: Text(_saving ? 'Saving…' : 'Save'),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    onPressed: () => context.goNamed(RouteNames.about),
+                    icon: const Icon(Icons.info_outline),
+                    label: const Text(SettingsStrings.aboutTileTitle),
                   ),
                 ],
               ),

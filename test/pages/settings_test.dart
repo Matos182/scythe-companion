@@ -42,6 +42,8 @@ void main() {
     // Default placeholder is visible when there's no saved value.
     expect(find.text('Server URL'), findsOneWidget);
     expect(find.text('Default nickname'), findsOneWidget);
+    expect(find.text('Your-turn alerts'), findsOneWidget);
+    expect(find.text('About'), findsOneWidget);
     expect(find.text('Save'), findsOneWidget);
 
     // Type into both fields. The QR-aware widget tree is heavy and
@@ -181,5 +183,51 @@ void main() {
     );
     expect(repository.currentServerUrl, isNull);
     expect((await repository.loadSettings()).serverUrl, isNull);
+  });
+
+  testWidgets('turn-alert switch defaults on and persists without Save',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Provider<GameRepository>.value(
+          value: repository,
+          child: const SettingsPage(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final toggle = find.byKey(const Key('settings-turn-alerts'));
+    expect(tester.widget<Switch>(toggle).value, isTrue);
+
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<Switch>(toggle).value, isFalse);
+    expect((await repository.loadSettings()).notificationsEnabled, isFalse);
+    expect(repository.notificationsEnabled, isFalse);
+  });
+
+  testWidgets('Save keeps a disabled turn-alert preference', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Provider<GameRepository>.value(
+          value: repository,
+          child: const SettingsPage(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('settings-turn-alerts')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(1), 'Alice');
+    await tester.pump();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    final saved = await repository.loadSettings();
+    expect(saved.nickname, 'Alice');
+    expect(saved.notificationsEnabled, isFalse);
   });
 }
