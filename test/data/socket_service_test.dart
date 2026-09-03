@@ -14,6 +14,8 @@ Map<String, dynamic> roomJson({
   String id = 'AB3KMN',
   bool isJoin = true,
   int turnIndex = 0,
+  bool isPaused = false,
+  String? pauseReason,
   List<Map<String, dynamic>>? players,
 }) {
   final playerList = players ??
@@ -25,7 +27,8 @@ Map<String, dynamic> roomJson({
     'isJoin': isJoin,
     'turnIndex': turnIndex,
     'totalTurns': 1,
-    'isPaused': false,
+    'isPaused': isPaused,
+    if (pauseReason != null) 'pauseReason': pauseReason,
     'players': playerList,
     'turn': playerList[turnIndex],
     'creator': playerList[0],
