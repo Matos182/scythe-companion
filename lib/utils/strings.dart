@@ -125,8 +125,8 @@ class AboutStrings {
       'Double-check scores at the table if something looks off.';
 
   static const openSourceLicenses = 'Open-source licenses';
-  static const legalese = 'MIT License. Unofficial fan-made helper. '
-      'Scythe is a trademark of Stonemaier LLC.';
+  static const legalese = 'Copyright (c) 2024-2026 Fábio Matos. MIT License. '
+      'Unofficial fan-made helper. Scythe is a trademark of Stonemaier LLC.';
 
   static const sectionThisApp = 'This app';
   static const sectionLegal = 'Legal';
