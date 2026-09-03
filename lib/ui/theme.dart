@@ -162,6 +162,20 @@ abstract final class ScytheTheme {
           side: BorderSide(color: ScytheColors.seam),
         ),
       ),
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return ScytheColors.parchment;
+          }
+          return ScytheColors.parchmentDim;
+        }),
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return ScytheColors.teslaGlow;
+          }
+          return ScytheColors.gunmetalHi;
+        }),
+      ),
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
           TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),

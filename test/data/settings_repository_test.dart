@@ -17,13 +17,15 @@ void main() {
       expect(loaded, const AppSettings());
       expect(loaded.serverUrl, isNull);
       expect(loaded.nickname, isNull);
+      expect(loaded.notificationsEnabled, isTrue);
     });
 
-    test('save → load round-trips both fields', () async {
+    test('save → load round-trips url, nickname, and notifications', () async {
       final repo = SharedPrefsSettingsRepository();
       const written = AppSettings(
         serverUrl: 'http://192.168.1.50:3000',
         nickname: 'Alice',
+        notificationsEnabled: false,
       );
       await repo.save(written);
       final loaded = await repo.load();
@@ -45,6 +47,16 @@ void main() {
       final loaded = await repo.load();
       expect(loaded.serverUrl, 'http://x:3000');
       expect(loaded.nickname, isNull);
+    });
+
+    test('missing notifications key loads as enabled', () async {
+      SharedPreferences.setMockInitialValues({
+        'settings.serverUrl': 'http://x:3000',
+      });
+      final repo = SharedPrefsSettingsRepository();
+      final loaded = await repo.load();
+      expect(loaded.notificationsEnabled, isTrue);
+      expect(loaded.serverUrl, 'http://x:3000');
     });
 
     test('empty-string fields are coerced to null on load', () async {
@@ -114,6 +126,14 @@ void main() {
       final updated = original.copyWith(nickname: 'B');
       expect(updated.serverUrl, 'http://x');
       expect(updated.nickname, 'B');
+      expect(updated.notificationsEnabled, isTrue);
+    });
+
+    test('equality includes notificationsEnabled', () {
+      expect(
+        const AppSettings(notificationsEnabled: false),
+        isNot(const AppSettings()),
+      );
     });
   });
 }

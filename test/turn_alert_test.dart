@@ -3,6 +3,7 @@
 // T5.5: the composition root cues the phone on your-turn even while
 // the app is in the foreground (the T3.4 path only fired when Homed).
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:scythe_companion/data/game_repository.dart';
 import 'package:scythe_companion/data/notifications.dart';
@@ -94,6 +95,41 @@ void main() {
     fake.serverEmit(
         'newTurn', roomJson(isJoin: false, turnIndex: 0, players: aliceBob));
     await tester.pump();
+    expect(notifications.yourTurnCalls, ['Alice']);
+  });
+
+  testWidgets('on-screen alerts off mutes the foreground cue', (tester) async {
+    await repository.setNotificationsEnabled(false);
+    await tester.pumpWidget(
+        MyApp(repository: repository, notifications: notifications));
+    await tester.pump();
+
+    await seatAlice();
+    fake.serverEmit(
+        'newTurn', roomJson(isJoin: false, turnIndex: 0, players: aliceBob));
+    await tester.pump();
+
+    expect(notifications.yourTurnCalls, isEmpty);
+  });
+
+  testWidgets('Homed phones still alert when on-screen alerts are off',
+      (tester) async {
+    await repository.setNotificationsEnabled(false);
+    await tester.pumpWidget(
+        MyApp(repository: repository, notifications: notifications));
+    await tester.pump();
+
+    await seatAlice();
+    await tester.pump();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    addTearDown(() {
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    });
+
+    fake.serverEmit(
+        'newTurn', roomJson(isJoin: false, turnIndex: 0, players: aliceBob));
+    await tester.pump();
+
     expect(notifications.yourTurnCalls, ['Alice']);
   });
 }
