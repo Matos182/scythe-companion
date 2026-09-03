@@ -23,29 +23,45 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// (typed it in Settings, scanned a QR, or the very first launch's
 /// default kicked in). Callers should treat null as "use the build-time
 /// default" and never pass null into the socket adapter.
+///
+/// `notificationsEnabled` defaults to true so existing installs keep
+/// the T5.5 your-turn cue until the user turns it off in Settings.
 class AppSettings {
-  const AppSettings({this.serverUrl, this.nickname});
+  const AppSettings({
+    this.serverUrl,
+    this.nickname,
+    this.notificationsEnabled = true,
+  });
 
   final String? serverUrl;
   final String? nickname;
+  final bool notificationsEnabled;
 
-  AppSettings copyWith({String? serverUrl, String? nickname}) => AppSettings(
+  AppSettings copyWith({
+    String? serverUrl,
+    String? nickname,
+    bool? notificationsEnabled,
+  }) =>
+      AppSettings(
         serverUrl: serverUrl ?? this.serverUrl,
         nickname: nickname ?? this.nickname,
+        notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
       );
 
   @override
   bool operator ==(Object other) =>
       other is AppSettings &&
       other.serverUrl == serverUrl &&
-      other.nickname == nickname;
+      other.nickname == nickname &&
+      other.notificationsEnabled == notificationsEnabled;
 
   @override
-  int get hashCode => Object.hash(serverUrl, nickname);
+  int get hashCode => Object.hash(serverUrl, nickname, notificationsEnabled);
 
   @override
   String toString() =>
-      'AppSettings(serverUrl: $serverUrl, nickname: $nickname)';
+      'AppSettings(serverUrl: $serverUrl, nickname: $nickname, '
+      'notificationsEnabled: $notificationsEnabled)';
 }
 
 abstract class SettingsRepository {
@@ -61,15 +77,20 @@ abstract class SettingsRepository {
 class SharedPrefsSettingsRepository implements SettingsRepository {
   static const _serverUrlKey = 'settings.serverUrl';
   static const _nicknameKey = 'settings.nickname';
+  static const _notificationsKey = 'settings.notificationsEnabled';
 
   @override
   Future<AppSettings> load() async {
     final prefs = await SharedPreferences.getInstance();
     final url = prefs.getString(_serverUrlKey);
     final nickname = prefs.getString(_nicknameKey);
+    // Missing key = leave the T5.5 default on. Only an explicit false
+    // (or true) written by Settings should change it.
+    final notificationsEnabled = prefs.getBool(_notificationsKey) ?? true;
     return AppSettings(
       serverUrl: (url == null || url.isEmpty) ? null : url,
       nickname: (nickname == null || nickname.isEmpty) ? null : nickname,
+      notificationsEnabled: notificationsEnabled,
     );
   }
 
@@ -86,6 +107,7 @@ class SharedPrefsSettingsRepository implements SettingsRepository {
     } else {
       await prefs.setString(_nicknameKey, settings.nickname!);
     }
+    await prefs.setBool(_notificationsKey, settings.notificationsEnabled);
   }
 
   @override
@@ -93,6 +115,7 @@ class SharedPrefsSettingsRepository implements SettingsRepository {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_serverUrlKey);
     await prefs.remove(_nicknameKey);
+    await prefs.remove(_notificationsKey);
   }
 }
 

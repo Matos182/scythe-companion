@@ -96,6 +96,21 @@ void main() {
     await tester.pump();
     expect(notifications.yourTurnCalls, ['Alice']);
   });
+
+  testWidgets('your-turn does not announce when alerts are disabled',
+      (tester) async {
+    await repository.setNotificationsEnabled(false);
+    await tester.pumpWidget(
+        MyApp(repository: repository, notifications: notifications));
+    await tester.pump();
+
+    await seatAlice();
+    fake.serverEmit(
+        'newTurn', roomJson(isJoin: false, turnIndex: 0, players: aliceBob));
+    await tester.pump();
+
+    expect(notifications.yourTurnCalls, isEmpty);
+  });
 }
 
 class _RecordingNotificationService extends NotificationService {

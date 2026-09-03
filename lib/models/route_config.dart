@@ -8,6 +8,7 @@ import '../pages/home.dart';
 import '../pages/join.dart';
 import '../pages/player_add.dart';
 import '../pages/result.dart';
+import '../pages/about.dart';
 import '../pages/settings.dart';
 import '../pages/simple.dart';
 import './route_const.dart';
@@ -57,7 +58,13 @@ class MyRouter {
               GoRoute(
                   name: RouteNames.settings,
                   path: 'settings',
-                  builder: ((context, state) => const SettingsPage())),
+                  builder: ((context, state) => const SettingsPage()),
+                  routes: <RouteBase>[
+                    GoRoute(
+                        name: RouteNames.about,
+                        path: 'about',
+                        builder: ((context, state) => const AboutPage())),
+                  ]),
             ]),
       ]);
 

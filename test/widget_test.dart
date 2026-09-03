@@ -22,6 +22,7 @@ import 'package:scythe_companion/data/settings_repository.dart';
 import 'package:scythe_companion/data/socket_service.dart';
 import 'package:scythe_companion/main.dart';
 import 'package:scythe_companion/models/route_const.dart';
+import 'package:scythe_companion/utils/strings.dart';
 
 import 'data/fake_socket_adapter.dart';
 
@@ -80,11 +81,27 @@ void main() {
     await tester.pumpWidget(
         MyApp(repository: buildRepository(), notifications: notifications));
 
-    await tester.tap(find.byTooltip('Server & nickname'));
+    await tester.tap(find.byTooltip('Settings'));
     await tester.pumpAndSettle();
 
     expect(find.text('Settings'), findsOneWidget);
     expect(find.text('Server URL'), findsOneWidget);
+    expect(find.text('Your-turn alerts'), findsOneWidget);
+  });
+
+  testWidgets('Settings About opens the about page', (tester) async {
+    await tester.pumpWidget(
+        MyApp(repository: buildRepository(), notifications: notifications));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Settings'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('About'));
+    await tester.tap(find.text('About'));
+    await tester.pumpAndSettle();
+
+    expect(find.text(AboutStrings.unofficial), findsOneWidget);
+    expect(find.byType(BackButton), findsOneWidget);
   });
 
   testWidgets('create, join, settings, and result expose a back button',

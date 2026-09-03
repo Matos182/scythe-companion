@@ -42,6 +42,7 @@ void main() async {
     sessionStore: SharedPrefsSessionStore(),
     settingsRepository: settingsRepository,
     initialServerUrl: initialUrl,
+    notificationsEnabled: settings.notificationsEnabled,
   );
   // T3.4: initialize the local notification plugin before the first
   // frame. No-op on non-Android platforms (D6); the plugin's method
@@ -147,7 +148,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     // turn — haptic + sound + heads-up, whether the app is in front or
     // Homed. The old backgrounded-only gate made the alert invisible
     // during an on-table playtest.
-    if (_roomNotifier.consumeJustBecameMyTurnFlag()) {
+    if (_roomNotifier.consumeJustBecameMyTurnFlag() &&
+        widget.repository.notificationsEnabled) {
       final nickname = _roomNotifier.room.turn.nickname;
       unawaited(_notifications.announceYourTurn(nickname: nickname));
     }

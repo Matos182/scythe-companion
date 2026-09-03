@@ -2,6 +2,11 @@
 
 All notable user-facing changes are recorded here.
 
+## Unreleased
+
+- Settings: toggle to turn off your-turn alerts (haptic, sound, and heads-up).
+- Settings → About: credits, unofficial/trademark notice, MIT license, and a privacy summary of what the app stores and sends.
+
 ## v0.4.0 — first multiplayer-ready release
 
 ### Added
