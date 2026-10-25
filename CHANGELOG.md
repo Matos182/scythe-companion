@@ -4,6 +4,7 @@ All notable user-facing changes are recorded here.
 
 ## Unreleased
 
+- Server: dependency security update — proxy-addr 2.0.8 (IP spoofing via IPv4-mapped IPv6), engine.io 6.6.11 (protocol-mismatch DoS), body-parser 1.20.9 (compressed-body DoS); dev tooling moved to vitest 5.
 - Server: Docker image pinned to `node:22.23.4-slim` (digest-pinned) for CVE-2026-111497, a Brotli decoder out-of-bounds write.
 - Settings: toggle to mute on-screen your-turn alerts (haptic, sound, heads-up). Homed phones always alert.
 - Settings → About: credits, unofficial/trademark notice, MIT license, and a privacy summary of what the app stores and sends.
